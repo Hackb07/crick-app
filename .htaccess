@@ -1,0 +1,37 @@
+# Apache Configuration for Cricket Scoring Application
+
+# Enable Rewrite Engine
+RewriteEngine On
+
+# Base path detection (for subdirectory installations)
+# RewriteBase will be auto-detected, but you can uncomment and set manually:
+# RewriteBase /cricapp
+
+# API Routes
+RewriteRule ^api/v1/(.*)$ api/v1/$1 [L]
+
+# Admin Routes
+RewriteRule ^admin/(.*)$ admin/$1 [L]
+
+# Assets
+RewriteRule ^assets/(.*)$ assets/$1 [L]
+
+# Prevent direct access to includes and classes
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^classes/ - [F,L]
+
+# Security: Prevent access to sensitive files
+<FilesMatch "^(config\.local\.php|\.htaccess|\.git|composer\.json|package\.json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# PHP Settings
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 60
+php_value max_input_time 60
+
+# Error Pages (optional)
+# ErrorDocument 404 /public/404.php
+# ErrorDocument 500 /public/500.php

@@ -1,0 +1,654 @@
+/**
+ * Live Match View Styles - Cricbuzz Style
+ */
+
+.live-match-page {
+    background: #f5f5f5;
+    min-height: 100vh;
+    padding-bottom: 70px;
+}
+
+/* Top Header - Green Background */
+.live-header {
+    background: #1b7a4a;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.live-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+}
+
+.menu-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    flex: 1;
+    text-align: center;
+}
+
+.login-link {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.match-title {
+    padding: 8px 16px 12px;
+    text-align: center;
+    font-size: 14px;
+    color: white;
+}
+
+.series-name {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+/* Navigation Tabs */
+.live-nav-tabs {
+    background: #1b7a4a;
+    display: flex;
+    overflow-x: auto;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 0 8px;
+}
+
+.live-nav-tabs .tab {
+    flex: 1;
+    padding: 12px 8px;
+    color: white;
+    text-decoration: none;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    min-width: 60px;
+}
+
+.live-nav-tabs .tab.active {
+    border-bottom-color: white;
+    font-weight: 600;
+}
+
+.live-nav-tabs .tab:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Live Content */
+.live-content {
+    padding: 16px;
+    background: white;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Session Update */
+.session-update {
+    margin-bottom: 16px;
+}
+
+.session-text {
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Team Score Section */
+.team-score-section {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.team-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1f2937;
+    margin-bottom: 3px;
+}
+
+.score-large {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.1;
+}
+
+.score-large .overs {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+/* Match Stats */
+.match-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    gap: 4px;
+    justify-content: center;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+}
+
+.more-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Scorecard Section */
+.scorecard-section {
+    margin-bottom: 20px;
+}
+
+.live-scorecard {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.live-scorecard thead {
+    background: #f3f4f6;
+}
+
+.live-scorecard th {
+    padding: 8px 4px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 11px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.live-scorecard th:first-child {
+    padding-left: 8px;
+}
+
+.live-scorecard th:last-child {
+    text-align: right;
+    padding-right: 8px;
+}
+
+.live-scorecard td {
+    padding: 10px 4px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #1f2937;
+}
+
+.live-scorecard td:first-child {
+    padding-left: 8px;
+}
+
+.live-scorecard td:last-child {
+    text-align: right;
+    padding-right: 8px;
+    color: #6b7280;
+}
+
+.live-scorecard tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.player-name {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.player-name.on-strike {
+    color: #2563eb;
+}
+
+/* Section Headings */
+.section-heading {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.scorecard-container {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Player Out */
+.player-out {
+    opacity: 0.7;
+}
+
+/* Commentary Section */
+.commentary-section {
+    margin-top: 2rem;
+}
+
+.commentary-section h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.commentary-feed {
+    max-height: 400px;
+    overflow-y: auto;
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.commentary-item {
+    margin-bottom: 16px;
+    padding: 12px;
+    border-left: 3px solid #e0e0e0;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.commentary-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.commentary-circle {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: white;
+    text-align: center;
+    line-height: 28px;
+    font-weight: bold;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.commentary-description {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 4px;
+}
+
+.commentary-dismissal {
+    margin: 8px 0;
+    padding: 8px;
+    background: #ffebee;
+    border-left: 3px solid #f44336;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Recent Updates */
+.recent-updates {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.recent-updates h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+}
+
+.updates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.update-item {
+    font-size: 13px;
+    color: #374151;
+    padding: 8px;
+    background: #f9fafb;
+    border-radius: 4px;
+}
+
+.update-time {
+    color: #9ca3af;
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+/* Bottom Navigation */
+.live-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1b7a4a;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.live-bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+    padding: 4px 8px;
+    flex: 1;
+}
+
+.live-bottom-nav .nav-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.live-bottom-nav .nav-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.live-bottom-nav .nav-item:hover {
+    opacity: 0.8;
+}
+
+/* Mobile Optimizations - Maximize screen coverage - Extra Compact */
+@media (max-width: 768px) {
+    .live-match-page {
+        padding-bottom: 60px;
+    }
+
+    .live-header-top {
+        padding: 6px 10px;
+    }
+
+    .match-title {
+        padding: 3px 10px 6px;
+        font-size: 11px;
+    }
+
+    .live-nav-tabs {
+        padding: 0.2rem 0.4rem;
+    }
+
+    .live-nav-tabs .tab {
+        padding: 0.4rem 0.5rem;
+        font-size: 10px;
+        min-width: 40px;
+    }
+
+    .live-content {
+        padding: 6px 8px;
+    }
+
+    .session-update {
+        margin-bottom: 6px;
+    }
+
+    .team-score-section {
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+    }
+
+    .team-name {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+    
+    .score-large {
+        font-size: 22px;
+        line-height: 1.1;
+    }
+
+    .score-large .overs {
+        font-size: 11px;
+        margin-left: 3px;
+    }
+    
+    .match-stats {
+        padding: 4px 0;
+        margin-bottom: 6px;
+    }
+
+    .stat-item {
+        gap: 3px;
+    }
+
+    .stat-label {
+        font-size: 10px;
+        margin-bottom: 0;
+    }
+
+    .stat-value {
+        font-size: 12px;
+    }
+
+    .more-link {
+        font-size: 11px;
+    }
+    
+    /* Scorecard tables - scrollable on mobile */
+    .live-scorecard,
+    .scorecard-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 11px;
+    }
+
+    .live-scorecard thead,
+    .scorecard-table thead {
+        display: table;
+        width: 100%;
+        table-layout: auto;
+    }
+
+    .live-scorecard tbody,
+    .scorecard-table tbody {
+        display: table;
+        width: 100%;
+        table-layout: auto;
+    }
+    
+    .live-scorecard th,
+    .live-scorecard td,
+    .scorecard-table th,
+    .scorecard-table td {
+        padding: 6px 4px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    .live-scorecard th,
+    .scorecard-table th {
+        font-size: 10px;
+        padding: 8px 4px;
+    }
+
+    /* Sticky first column for better mobile UX */
+    .live-scorecard th:first-child,
+    .live-scorecard td:first-child,
+    .scorecard-table th:first-child,
+    .scorecard-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: inherit;
+        z-index: 1;
+        min-width: 100px;
+        padding-left: 8px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .live-scorecard thead th:first-child,
+    .scorecard-table thead th:first-child {
+        background: #f3f4f6;
+    }
+
+    .live-scorecard th:last-child,
+    .scorecard-table th:last-child {
+        padding-right: 8px;
+        text-align: right;
+    }
+
+    .live-scorecard td:last-child,
+    .scorecard-table td:last-child {
+        padding-right: 8px;
+    }
+
+    .section-heading {
+        font-size: 11px;
+        margin-bottom: 6px;
+        padding-bottom: 3px;
+    }
+
+    .scorecard-container {
+        margin-top: 4px;
+        margin-bottom: 6px;
+    }
+
+    .section-title {
+        font-size: 12px;
+        margin-bottom: 4px;
+        padding-bottom: 3px;
+    }
+
+    .commentary-section {
+        margin-top: 1rem;
+    }
+
+    .commentary-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .commentary-feed {
+        max-height: 320px;
+        padding: 0.5rem;
+    }
+
+    .commentary-item {
+        margin-bottom: 8px;
+        padding: 8px;
+    }
+
+    .commentary-circle {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 12px;
+        margin-right: 6px;
+    }
+
+    .commentary-header {
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+    }
+
+    .commentary-description {
+        font-size: 0.8125rem;
+    }
+
+    .commentary-dismissal {
+        margin: 6px 0;
+        padding: 6px;
+        font-size: 0.8125rem;
+    }
+
+    .recent-updates {
+        margin-top: 1.5rem;
+        padding-top: 12px;
+    }
+
+    .recent-updates h3 {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .update-item {
+        font-size: 12px;
+        padding: 6px;
+    }
+
+    .update-time {
+        font-size: 10px;
+        margin-left: 6px;
+    }
+
+    .live-bottom-nav {
+        padding: 6px 0;
+    }
+
+    .live-bottom-nav .nav-item {
+        padding: 3px 6px;
+    }
+
+    .live-bottom-nav .nav-icon {
+        font-size: 18px;
+        margin-bottom: 2px;
+    }
+
+    .live-bottom-nav .nav-label {
+        font-size: 10px;
+    }
+}

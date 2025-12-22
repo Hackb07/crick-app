@@ -1,0 +1,505 @@
+/**
+ * Scoring Interface Styles
+ * 5th-grade friendly with large, touch-friendly buttons
+ */
+
+.scoring-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.scorecard {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+.scorecard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.current-score {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.overs-info {
+    font-size: 1.25rem;
+    color: var(--text-light);
+}
+
+.scoring-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.scoring-btn {
+    padding: 2rem 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border: 3px solid transparent;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--primary-color);
+    color: white;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scoring-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.scoring-btn:active {
+    transform: scale(0.98);
+}
+
+.scoring-btn.runs-0 { background: #6b7280; }
+.scoring-btn.runs-1 { background: #10b981; }
+.scoring-btn.runs-2 { background: #059669; }
+.scoring-btn.runs-3 { background: #047857; }
+.scoring-btn.runs-4 { background: #f59e0b; }
+.scoring-btn.runs-6 { background: #ef4444; }
+.scoring-btn.wicket { background: #7c2d12; }
+.scoring-btn.extra { background: #6366f1; }
+
+.undo-btn {
+    grid-column: 1 / -1;
+    background: var(--danger-color) !important;
+    font-size: 1.25rem;
+}
+
+.commentary-section {
+    margin-top: 2rem;
+}
+
+.commentary-input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.commentary-feed {
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--bg-light);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.commentary-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.commentary-item:last-child {
+    border-bottom: none;
+}
+
+/* Player Selection Section */
+.player-selection-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.player-selector {
+    background: white;
+    padding: 0.75rem;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.player-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.player-selector select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+#striker-display,
+#non-striker-display,
+#bowler-display {
+    margin-top: 0.5rem;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+#striker-display {
+    color: #2196F3;
+}
+
+#non-striker-display {
+    color: #4CAF50;
+}
+
+#bowler-display {
+    color: #FF9800;
+}
+
+/* Player Stats Display (like Cricbuzz) */
+.player-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.player-stat-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #ddd;
+}
+
+.striker-stat {
+    border-left-color: #2196F3;
+    background: #e3f2fd;
+}
+
+.non-striker-stat {
+    border-left-color: #4CAF50;
+    background: #e8f5e9;
+}
+
+.bowler-stat {
+    border-left-color: #FF9800;
+    background: #fff3e0;
+}
+
+.stat-player-name {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.stat-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1976d2;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .scoring-container {
+        padding: 0.75rem;
+    }
+
+    .scorecard {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .scorecard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .current-score {
+        font-size: 1.75rem;
+        width: 100%;
+        text-align: left;
+    }
+
+    .overs-info {
+        font-size: 1rem;
+    }
+
+    .scoring-buttons {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+    }
+
+    .scoring-btn {
+        padding: 1.25rem 0.5rem;
+        font-size: 1.125rem;
+        min-height: 70px;
+        font-weight: 700;
+    }
+
+    .undo-btn {
+        grid-column: 1 / -1;
+        font-size: 1.125rem;
+        min-height: 60px;
+        margin-top: 0.5rem;
+    }
+
+    .player-selection-section {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    .player-selector {
+        padding: 1rem;
+    }
+
+    .player-selector label {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .player-selector select {
+        padding: 0.875rem;
+        font-size: 1rem;
+        min-height: 44px;
+    }
+
+    .player-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .player-stat-card {
+        padding: 1rem;
+    }
+
+    .stat-player-name {
+        font-size: 0.9375rem;
+    }
+
+    .stat-value {
+        font-size: 1rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .commentary-section {
+        margin-top: 1.5rem;
+    }
+
+    .commentary-input {
+        padding: 0.875rem;
+        font-size: 1rem;
+        min-height: 44px;
+    }
+
+    .commentary-feed {
+        max-height: 300px;
+        padding: 0.75rem;
+    }
+
+    .commentary-item {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    #player-stats-container {
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+
+    /* Complete innings button */
+    #complete-innings-section {
+        margin: 1rem 0;
+    }
+
+    #complete-innings-btn {
+        padding: 1rem;
+        font-size: 1rem;
+        width: 100%;
+    }
+
+    /* Warning boxes */
+    div[style*="background: #fff3cd"] {
+        padding: 0.875rem !important;
+        font-size: 0.875rem !important;
+        margin: 0.75rem 0 !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    .scoring-container {
+        padding: 0.5rem;
+    }
+
+    .scorecard {
+        padding: 0.75rem;
+    }
+
+    .current-score {
+        font-size: 1.5rem;
+    }
+
+    .scoring-buttons {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .scoring-btn {
+        padding: 1rem 0.5rem;
+        font-size: 1rem;
+        min-height: 60px;
+    }
+
+    .undo-btn {
+        font-size: 1rem;
+        min-height: 50px;
+    }
+
+    .player-selection-section {
+        padding: 0.75rem;
+    }
+
+    .player-selector {
+        padding: 0.75rem;
+    }
+
+    h2 {
+        font-size: 1.125rem;
+    }
+
+    h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    .scoring-btn {
+        min-height: 80px;
+        padding: 1.5rem 1rem;
+        font-size: 1.25rem;
+    }
+
+    .player-selector select {
+        min-height: 48px;
+        padding: 1rem;
+    }
+
+    .commentary-input {
+        min-height: 48px;
+        padding: 1rem;
+    }
+
+    #complete-innings-btn {
+        min-height: 56px;
+        padding: 1.25rem;
+    }
+}
+
+/* Modal Styles */
+.modal-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.modal-content .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.modal-content select,
+.modal-content input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-content .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.modal-content .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-content .btn-primary {
+    background: #7c2d12;
+    color: white;
+}
+
+.modal-content .btn:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+

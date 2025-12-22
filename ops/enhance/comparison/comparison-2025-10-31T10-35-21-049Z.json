@@ -1,0 +1,304 @@
+{
+  "without": [
+    {
+      "type": "simple",
+      "query": "add a player profile page",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906921016,
+        "endTime": 1761906921017,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "complex",
+      "query": "implement match scoring with live updates",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906921020,
+        "endTime": 1761906921020,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "bug",
+      "query": "fix login authentication issue",
+      "category": "bug",
+      "metrics": {
+        "startTime": 1761906921022,
+        "endTime": 1761906921023,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "design",
+      "query": "create a mobile-responsive match view",
+      "category": "design",
+      "metrics": {
+        "startTime": 1761906921024,
+        "endTime": 1761906921025,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "test",
+      "query": "add unit tests for player class",
+      "category": "test",
+      "metrics": {
+        "startTime": 1761906921028,
+        "endTime": 1761906921030,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 2,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "without"
+    }
+  ],
+  "with": [
+    {
+      "type": "simple",
+      "query": "add a player profile page",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906921034,
+        "endTime": 1761906921035,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "complex",
+      "query": "implement match scoring with live updates",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906921036,
+        "endTime": 1761906921037,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "bug",
+      "query": "fix login authentication issue",
+      "category": "bug",
+      "metrics": {
+        "startTime": 1761906921039,
+        "endTime": 1761906921040,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "design",
+      "query": "create a mobile-responsive match view",
+      "category": "design",
+      "metrics": {
+        "startTime": 1761906921041,
+        "endTime": 1761906921043,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 2,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "test",
+      "query": "add unit tests for player class",
+      "category": "test",
+      "metrics": {
+        "startTime": 1761906921046,
+        "endTime": 1761906921047,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 1,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 1
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    }
+  ],
+  "summary": {
+    "avgDurationWithout": 1,
+    "avgDurationWith": 1.2,
+    "avgOverheadWithout": 900,
+    "avgOverheadWith": 900,
+    "overheadDifference": 0,
+    "percentageIncrease": 0
+  }
+}

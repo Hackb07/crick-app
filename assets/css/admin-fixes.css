@@ -1,0 +1,59 @@
+/* Admin CSS Fixes - Action Buttons and Table Layout
+ * This file contains fixes for CSS collapse issues in admin tables
+ * Load this after admin.css
+ */
+
+/* Fix action buttons layout */
+.action-buttons {
+    display: flex !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
+.btn-icon {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Ensure actions column has proper width */
+.data-table td:last-child,
+.data-table th:last-child {
+    min-width: 170px !important;
+    width: auto !important;
+    white-space: nowrap !important;
+}
+
+/* Improve table cell alignment */
+.data-table td {
+    vertical-align: middle !important;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+    .action-buttons {
+        gap: 4px !important;
+    }
+
+    .btn-icon {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+    }
+
+    .btn-icon svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+
+    .data-table td:last-child,
+    .data-table th:last-child {
+        min-width: 140px !important;
+        width: auto !important;
+    }
+}

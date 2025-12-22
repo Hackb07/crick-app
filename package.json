@@ -1,0 +1,32 @@
+{
+  "name": "cricapp",
+  "version": "1.0.0",
+  "description": "Cricket Scoring Application - Simple, lightweight scoring app for local teams",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:admin": "cd apps/admin && npm run dev",
+    "dev:scorer": "cd apps/scorer && npm run dev",
+    "dev:public": "cd apps/public && npm run dev",
+    "dev:web": "cd apps/web && npm run dev",
+    "build": "npm run build --workspaces",
+    "build:admin": "cd apps/admin && npm run build",
+    "build:scorer": "cd apps/scorer && npm run build",
+    "build:public": "cd apps/public && npm run build",
+    "build:web": "cd apps/web && npm run build",
+    "test": "npm test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+

@@ -1,0 +1,91 @@
+{
+  "timestamp": "2025-10-31T10:34:56.834Z",
+  "summary": {
+    "totalRules": 14,
+    "autoRunRules": 12,
+    "alwaysTriggeredRules": 5,
+    "conditionalRules": 9,
+    "processSpawnsPerQuery": 12
+  },
+  "overhead": {
+    "perQueryMs": 900,
+    "perQuerySpawns": 12,
+    "perDayQueries": 90000,
+    "yearlyOverhead": 547.5
+  },
+  "issues": [
+    {
+      "severity": "high",
+      "rule": "prompt-enhancer-v7",
+      "issue": "Matches .* (always triggers on every query)",
+      "recommendation": "Use specific regex patterns instead"
+    },
+    {
+      "severity": "high",
+      "rule": "semantic-trigger-v7",
+      "issue": "Matches .* (always triggers on every query)",
+      "recommendation": "Use specific regex patterns instead"
+    },
+    {
+      "severity": "high",
+      "rule": "enhance-v7-master",
+      "issue": "Matches .* (always triggers on every query)",
+      "recommendation": "Use specific regex patterns instead"
+    },
+    {
+      "severity": "high",
+      "rule": "repo-indexer-v7",
+      "issue": "Matches .* (always triggers on every query)",
+      "recommendation": "Use specific regex patterns instead"
+    },
+    {
+      "severity": "high",
+      "rule": "telemetry-emitter-v7",
+      "issue": "Matches .* (always triggers on every query)",
+      "recommendation": "Use specific regex patterns instead"
+    },
+    {
+      "severity": "medium",
+      "rule": "multiple",
+      "issue": "5 rules always trigger on every query",
+      "recommendation": "Review and optimize high-priority rules to use conditional patterns"
+    },
+    {
+      "severity": "medium",
+      "rule": "multiple",
+      "issue": "12 tools spawn child processes per query",
+      "recommendation": "Consider batching or reducing process spawns through direct function calls"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "action": "Replace .* patterns with specific regex",
+      "impact": "Would reduce 5 unnecessary rule triggers per query",
+      "examples": [
+        "Instead of: \"matches\": \".*\"",
+        "Use: \"matches\": \"(create|add|implement|fix)\\s+(player|match|team)\"",
+        "Or: \"matches\": \".*(test|spec|unit).*\""
+      ]
+    },
+    {
+      "priority": "medium",
+      "action": "Reduce child process spawning",
+      "impact": "Could save 900ms per query",
+      "examples": [
+        "Use direct function calls instead of child_process.spawnSync()",
+        "Batch multiple operations",
+        "Cache results to avoid re-execution"
+      ]
+    },
+    {
+      "priority": "low",
+      "action": "Make telemetry conditional",
+      "impact": "Reduce logging overhead on every query",
+      "examples": [
+        "Only log actual operations, not every query",
+        "Use: \"matches\": \".*(APPLY|DEPLOY|proposal).*\""
+      ]
+    }
+  ]
+}

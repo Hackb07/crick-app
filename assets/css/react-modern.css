@@ -1,0 +1,319 @@
+/**
+ * Modern React Design System
+ * Shared hosting compatible - pure CSS
+ */
+
+/* React-specific styles - extends vue-modern.css */
+.react-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.react-section {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--gray-200);
+}
+
+.react-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    transition: var(--transition);
+    border: 1px solid var(--gray-200);
+}
+
+.react-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-light);
+}
+
+.react-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.react-button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.react-button.secondary {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.react-button.secondary:hover {
+    background: var(--gray-200);
+}
+
+.react-button.success {
+    background: var(--success);
+    color: var(--white);
+}
+
+.react-button.success:hover {
+    background: #059669;
+}
+
+.react-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* React Grid */
+.react-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+/* React Header */
+.react-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: var(--white);
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.react-header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.react-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* React Loading */
+.react-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 1rem;
+}
+
+/* React Error */
+.react-error {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #fef2f2;
+    border-left: 4px solid var(--error);
+    border-radius: var(--radius-md);
+    margin: 1rem 0;
+}
+
+.react-error-icon {
+    font-size: 1.5rem;
+}
+
+.react-error-text {
+    color: var(--error);
+    font-weight: 500;
+}
+
+/* React Empty State */
+.react-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+}
+
+.react-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.react-empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.react-empty-message {
+    color: var(--gray-500);
+    font-size: 0.875rem;
+}
+
+/* React Match Card */
+.react-match-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    transition: var(--transition);
+    border: 1px solid var(--gray-200);
+}
+
+.react-match-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-light);
+}
+
+.react-match-card.live {
+    border-left: 4px solid var(--error);
+    background: linear-gradient(to right, #fef2f2 0%, var(--white) 10%);
+}
+
+.react-match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.react-match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.react-match-team {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    flex: 1;
+    text-align: center;
+}
+
+.react-match-vs {
+    color: var(--gray-400);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.react-match-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .react-container {
+        padding: 1rem;
+    }
+    
+    .react-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .react-section {
+        padding: 1.5rem;
+    }
+    
+    .react-match-card {
+        padding: 1.25rem;
+    }
+}
+
+/* React Transitions */
+.react-fade-enter {
+    opacity: 0;
+}
+
+.react-fade-enter-active {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.react-fade-exit {
+    opacity: 1;
+}
+
+.react-fade-exit-active {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* React Bottom Nav */
+.react-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem 0;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+}
+
+.react-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: var(--gray-500);
+    transition: var(--transition);
+    border-radius: var(--radius);
+}
+
+.react-nav-item.active {
+    color: var(--primary);
+}
+
+.react-nav-icon {
+    font-size: 1.25rem;
+}
+
+.react-nav-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+@media (min-width: 769px) {
+    .react-bottom-nav {
+        display: none;
+    }
+}
+

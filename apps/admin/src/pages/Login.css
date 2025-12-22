@@ -1,0 +1,38 @@
+.login-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+}
+
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-card h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    text-align: center;
+    color: #0f172a;
+}
+
+.subtitle {
+    text-align: center;
+    color: #64748b;
+    margin-bottom: 32px;
+}
+
+.btn-block {
+    width: 100%;
+    margin-top: 24px;
+    padding: 12px;
+}
+
+/* Reusing some form styles from App.css implicitly via class names, 
+   but ensuring specific Login.css overrides if needed */

@@ -1,0 +1,585 @@
+/* ============================================ */
+/* Flow.php - Match Flow Management Styles */
+/* ============================================ */
+
+/* PWA Admin Design System */
+:root {
+    /* Colors */
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #eff6ff;
+    --bg-body: #f3f4f6;
+    --bg-card: #ffffff;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --danger: #ef4444;
+
+    /* Layout */
+    --header-height: 56px;
+    --sidebar-width: 260px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+    /* Safe Area */
+    --safe-bottom: env(safe-area-inset-bottom);
+}
+
+/* Reset & Base */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-body);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+/* App Shell Layout */
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header (Mobile First) */
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 1000;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-radius: 50%;
+}
+
+/* Sidebar (Hidden on Mobile) */
+.admin-sidebar {
+    display: none;
+}
+
+/* Main Content */
+.app-main {
+    flex: 1;
+    padding-top: var(--header-height);
+    padding-bottom: calc(16px + var(--safe-bottom));
+    width: 100%;
+}
+
+.content-container {
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+/* Components */
+.card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    background: var(--bg-body);
+}
+
+.card-body {
+    padding: 16px;
+}
+
+/* Stepper */
+.stepper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    position: relative;
+    padding: 0 12px;
+}
+
+.stepper::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 24px;
+    right: 24px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+}
+
+.step-item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.step-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.step-item.active .step-circle {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.step-item.completed .step-circle {
+    border-color: var(--success);
+    background: var(--success);
+    color: white;
+}
+
+.step-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.step-item.active .step-label {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Forms & Inputs */
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+    margin-bottom: 12px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+
+.btn:active {
+    opacity: 0.8;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Player List */
+.player-list {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.player-item:last-child {
+    border-bottom: none;
+}
+
+.player-item.selected {
+    background: var(--primary-light);
+}
+
+.checkbox-custom {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    accent-color: var(--primary);
+}
+
+/* Toss Grid */
+.toss-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.toss-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toss-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.toss-icon {
+    font-size: 24px;
+}
+
+.toss-info h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.toss-info p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Desktop Enhancements (≥ 1024px) */
+@media (min-width: 1024px) {
+    .app-shell {
+        flex-direction: row;
+    }
+
+    .admin-sidebar {
+        display: block;
+        width: var(--sidebar-width);
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        background: #1f2937;
+        /* Dark sidebar */
+        color: white;
+        z-index: 1001;
+        overflow-y: auto;
+    }
+
+    /* Adjust Sidebar Styles */
+    .admin-sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-sidebar-logo {
+        color: white;
+        text-decoration: none;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .admin-nav-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: #d1d5db;
+        text-decoration: none;
+    }
+
+    .admin-nav-item:hover,
+    .admin-nav-item.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .admin-nav-item-icon {
+        margin-right: 12px;
+        width: 20px;
+        text-align: center;
+    }
+
+    .app-header {
+        left: var(--sidebar-width);
+        padding: 0 32px;
+    }
+
+    .app-main {
+        margin-left: var(--sidebar-width);
+        padding: calc(var(--header-height) + 32px) 32px 32px;
+    }
+
+    .content-container {
+        max-width: 1200px;
+        margin: 0;
+    }
+
+    .grid-2-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .toss-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .toss-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 32px;
+    }
+
+    .toss-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+    }
+}
+
+/* Coin Flip Simulator */
+.coin-container {
+    perspective: 1000px;
+    width: 150px;
+    height: 150px;
+    margin: 20px auto;
+    display: none;
+    /* Hidden by default */
+}
+
+.coin {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.coin-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 24px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 4px solid #e5e7eb;
+}
+
+.coin-heads {
+    background: #fbbf24;
+    /* Gold */
+    color: #92400e;
+}
+
+.coin-tails {
+    background: #9ca3af;
+    /* Silver */
+    color: #1f2937;
+    transform: rotateY(180deg);
+}
+
+/* ============================================ */
+/* PHASE 1: QUICK WINS - UX IMPROVEMENTS */
+/* ============================================ */
+
+/* 1. Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+    max-width: 90%;
+}
+
+.toast-success {
+    background: #10b981;
+}
+
+.toast-error {
+    background: #ef4444;
+}
+
+.toast-warning {
+    background: #f59e0b;
+}
+
+.toast-info {
+    background: #3b82f6;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* 2. Loading States */
+.btn.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 3. Player Count Badge */
+.player-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+.player-count-badge.valid {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.player-count-badge.invalid {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* 4. Focus Indicators for Accessibility */
+.player-item:focus-within,
+.toss-card:focus-within,
+.btn:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* 5. Clear All Button Styling */
+.btn-clear {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 4px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-clear:hover {
+    background: #ef4444;
+    color: white;
+}

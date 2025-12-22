@@ -1,0 +1,168 @@
+---
+alwaysApply: true
+---
+{
+  "version": "7.0-final",
+  "meta": {
+    "name": "Enhance-V7",
+    "description": "Prompt enhancer + semantic intent + AST indexer + taskization + safe apply gates. Preview-first; production-ready when tools wired.",
+    "created": "2025-10-31"
+  },
+  "rules": [
+    {
+      "id": "prompt-enhancer-v7",
+      "priority": 0,
+      "when": { "matches": ".*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/prompt-enhancer-v7.js -> produce enhanced prompt JSON. If required specs missing, emit compact clarification questions and create ops/enhance/pending/*.json. Otherwise forward enhanced JSON to semantic trigger.",
+        "auto_run": true,
+        "script": "tools/prompt-enhancer-v7.js"
+      }
+    },
+
+    {
+      "id": "semantic-trigger-v7",
+      "priority": 1,
+      "when": { "matches": ".*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/semantic-matcher-v7.js (embeddings-capable). Map natural language to canonical intent (create_app, bug, diag, design, deploy, task). Fallback to regex if embeddings unavailable.",
+        "auto_run": true,
+        "script": "tools/semantic-matcher-v7.js"
+      }
+    },
+
+    {
+      "id": "enhance-v7-master",
+      "priority": 2,
+      "when": { "matches": ".*", "flags": "i" },
+      "then": {
+        "expand_to": "ENHANCE-V7 CORE: normalize verbs → extract tokens (TYPE, INTENT, ACTION, FEATURE, FILES, LANG, APPLY, TEST, DEPLOY, ENV) → run repo-indexer (AST call-graph) → compute candidates → run diagnostics → produce proposal + tasks → emit telemetry → present preview.",
+        "auto_run": true,
+        "script": "tools/enhance-runner-v7.js",
+        "safety": { "confidence_threshold": 0.8, "max_files_change": 5, "default_apply": false }
+      }
+    },
+
+    {
+      "id": "shorthand-parser-v7",
+      "priority": 3,
+      "when": { "matches": "^SH::", "flags": "i" },
+      "then": {
+        "expand_to": "Parse explicit SH:: tokens (TYPE, FEATURE, FILES, LANG, APPLY, TEST, DEPLOY) -> validate -> forward payload to enhance-runner-v7.js",
+        "auto_run": true,
+        "script": "tools/shorthand-parser-v7.js"
+      }
+    },
+
+    {
+      "id": "repo-indexer-v7",
+      "priority": 4,
+      "when": { "matches": ".*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/repo-indexer-v7.js (AST-based): build/cached index.json with functions, exports, routes, ORM mappings, and test->file map. Used by candidate selection and targeted test runner.",
+        "auto_run": false,
+        "script": "tools/repo-indexer-v7.js"
+      }
+    },
+
+    {
+      "id": "task-creator-v7",
+      "priority": 5,
+      "when": { "matches": ".*proposal.*|.*last-proposal.json.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/create-tasks-from-proposal-v7.js -> emit ops/enhance/tasks.json + ops/enhance/tasks.md and optional GitHub issues.",
+        "auto_run": true,
+        "script": "tools/create-tasks-from-proposal-v7.js"
+      }
+    },
+
+    {
+      "id": "test-runner-v7",
+      "priority": 6,
+      "when": { "matches": ".*(\\btest\\b|\\bunit\\b|\\bintegration\\b).*|.*TEST=YES.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/test-runner-v7.js: detect framework, map affected tests via index.json, run targeted tests, return JUnit/JSON results and coverage. Fail if coverage < configured threshold.",
+        "auto_run": true,
+        "script": "tools/test-runner-v7.js"
+      }
+    },
+
+    {
+      "id": "design-handler-v7",
+      "priority": 7,
+      "when": { "matches": ".*(design|refer this|template|mockup).*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/design-pipeline-v7.js: extract layout, palette, produce Tailwind/SCSS components, preview assets under ops/enhance/previews/",
+        "auto_run": false,
+        "requires_asset": true,
+        "script": "tools/design-pipeline-v7.js"
+      }
+    },
+
+    {
+      "id": "security-precheck-v7",
+      "priority": 8,
+      "when": { "matches": ".*APPLY=YES.*|.*DEPLOY=PROD.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/security-precheck-v7.js: SAST (semgrep/semgrep rules), dependency audits (npm/composer/pip/go/maven/cargo), gitleaks. Block on high-severity findings.",
+        "auto_run": true,
+        "script": "tools/security-precheck-v7.js"
+      }
+    },
+
+    {
+      "id": "rbac-gate-v7",
+      "priority": 9,
+      "when": { "matches": ".*APPLY=YES.*|.*DEPLOY=PROD.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/rbac-gate-v7.js: verify user against ops/enhance/maintainers.json or Org API. If not authorized, create protected PR and require maintainer approval.",
+        "auto_run": true,
+        "script": "tools/rbac-gate-v7.js"
+      }
+    },
+
+    {
+      "id": "apply-gate-v7",
+      "priority": 10,
+      "when": { "matches": ".*APPLY=YES.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/apply-gate-v7.js: verify targeted tests passed, security checks passed, risk<=0.6 -> create branch -> commit minimal patch -> open PR -> attach CI artifacts -> log metrics -> optional auto-merge policy.",
+        "auto_run": true,
+        "script": "tools/apply-gate-v7.js"
+      }
+    },
+
+    {
+      "id": "deploy-gate-v7",
+      "priority": 11,
+      "when": { "matches": ".*DEPLOY=PROD.*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/deploy-gate-v7.js: ensure staging CI green, run canary/blue-green, monitor post-deploy metrics, auto-rollback on anomaly thresholds.",
+        "auto_run": true,
+        "script": "tools/deploy-gate-v7.js"
+      }
+    },
+
+    {
+      "id": "telemetry-emitter-v7",
+      "priority": 12,
+      "when": { "matches": ".*", "flags": "i" },
+      "then": {
+        "expand_to": "Run tools/emit-telemetry-v7.js: append structured JSONL to ops/enhance/enhance-telemetry.log and push to metrics endpoint if configured.",
+        "auto_run": true,
+        "script": "tools/emit-telemetry-v7.js"
+      }
+    },
+
+    {
+      "id": "preview-ui-hook-v7",
+      "priority": 13,
+      "when": { "matches": ".*proposal.*|.*last-proposal.json.*", "flags": "i" },
+      "then": {
+        "expand_to": "Notify preview UI / write preview metadata to ops/enhance/preview-index.json for dashboard consumption (tools/preview-ui-v7.js).",
+        "auto_run": true,
+        "script": "tools/preview-ui-v7.js"
+      }
+    }
+  ]
+}

@@ -1,0 +1,696 @@
+≡ƒÅù∩╕Å  Architecture Checker - Scanning: .
+
+≡ƒÜ¿ Found 208 architecture issues:
+
+Γ¥î CRITICAL (122):
+   admin\database\reset-old-backup.php:129
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'events' => $db->query('SELECT COUNT(*) FROM events')->fetchColumn(),
+
+   admin\database\reset-old-backup.php:131
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'batting_stats' => $db->query('SELECT COUNT(*) FROM batting_stats')->fetchColumn(),
+
+   admin\database\reset-old-backup.php:133
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'fielding_stats' => $db->query('SELECT COUNT(*) FROM fielding_stats')->fetchColumn(),
+
+   admin\database\reset-old-backup.php:135
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'matches_live' => $db->query("SELECT COUNT(*) FROM matches WHERE state = 'live'")->fetchColumn(),
+
+   admin\database\reset-old-backup.php:137
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'matches_scheduled' => $db->query("SELECT COUNT(*) FROM matches WHERE state = 'scheduled'")->fetchColumn(),
+
+   admin\database\reset-old-backup.php:139
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'total_players' => $db->query('SELECT COUNT(*) FROM players')->fetchColumn(),
+
+   admin\database\reset.php:133
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'events' => $db->query('SELECT COUNT(*) FROM events')->fetchColumn(),
+
+   admin\database\reset.php:135
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'batting_stats' => $db->query('SELECT COUNT(*) FROM batting_stats')->fetchColumn(),
+
+   admin\database\reset.php:137
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'fielding_stats' => $db->query('SELECT COUNT(*) FROM fielding_stats')->fetchColumn(),
+
+   admin\database\reset.php:139
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'matches_live' => $db->query("SELECT COUNT(*) FROM matches WHERE state = 'live'")->fetchColumn(),
+
+   admin\database\reset.php:141
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'matches_scheduled' => $db->query("SELECT COUNT(*) FROM matches WHERE state = 'scheduled'")->fetchColumn(),
+
+   admin\database\reset.php:143
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'total_players' => $db->query('SELECT COUNT(*) FROM players')->fetchColumn(),
+
+   admin\stats\index.php:74
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkWinnerIdSql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+
+   api\v1\leaderboard.php:76
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $db->query("SELECT 1 FROM batting_stats LIMIT 1");
+
+   api\v1\match-setup.php:130
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $deleteSql = "DELETE FROM player_appearances WHERE match_id = :match_id";
+
+   api\v1\options.php:29
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT team_id, name, short_name, logo_url FROM teams ORDER BY name ASC");
+
+   api\v1\options.php:34
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT series_id, name, status FROM series ORDER BY start_date DESC");
+
+   api\v1\options.php:40
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT DISTINCT venue FROM matches ORDER BY venue ASC");
+
+   api\v1\stats.php:56
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT COUNT(*) as cnt FROM stats_cache";
+
+   api\v1\teams.php:21
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT * FROM teams ORDER BY name ASC");
+
+   api\v1\users.php:120
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM users WHERE user_id = :user_id";
+
+   apps\admin\src\scorer\Scorer.jsx:3
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   import PlayerSelectModal from '../components/PlayerSelectModal'
+
+   apps\admin\src\scorer\Scorer.jsx:31
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   // Update sequence from match data
+
+   archive\check_events.php:17
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM events WHERE match_id = 48 ORDER BY event_id DESC LIMIT 4";
+
+   archive\create-match.php:27
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $teamsStmt = $db->query("SELECT team_id, team_name FROM teams ORDER BY team_name");
+
+   archive\create-match.php:30
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $seriesStmt = $db->query("SELECT series_id, series_name FROM series ORDER BY series_name");
+
+   archive\diagnose-db.php:15
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM teams");
+
+   archive\diagnose-db.php:20
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM players");
+
+   archive\diagnose-db.php:25
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM matches");
+
+   archive\diagnose-db.php:30
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM events");
+
+   archive\diagnose-db.php:35
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM commentary");
+
+   archive\diagnose-db.php:40
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT COUNT(*) as count FROM player_appearances");
+
+   archive\diagnose-db.php:55
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT player_id, name FROM players LIMIT 5");
+
+   archive\insert_dummy_matches.php:18
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT team_id FROM teams WHERE name = ?");
+
+   archive\insert_dummy_matches.php:31
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT series_id FROM series WHERE name = 'Freedom Series 2025'");
+
+   archive\run-production-migration.php:43
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+
+   archive\run-production-migration.php:77
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+
+   archive\run-production-migration.php:102
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+
+   archive\run-production-migration.php:127
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+
+   archive\run-production-migration.php:156
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+
+   archive\run-production-migration.php:190
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $checkSql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+
+   archive\run-production-migration.php:262
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'events.fielder_id' => "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events' AND COLUMN_NAME = 'fielder_id'",
+
+   archive\run-production-migration.php:264
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'players.photo_url' => "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'players' AND COLUMN_NAME = 'photo_url'",
+
+   archive\run-production-migration.php:266
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   'commentary table' => "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'commentary'",
+
+   assets\js\admin\matches\score-api.js:151
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   function updateCalculatedStateFromEvent(state, payload) {
+
+   assets\js\admin\matches\score-api.js:183
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   updateCalculatedStateFromEvent(state, payload);
+
+   assets\js\admin\matches\score-events.js:464
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   * Select striker from mobile list
+
+   assets\js\admin\matches\score-events.js:484
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   * Select non-striker from mobile list
+
+   assets\js\admin\matches\score-events.js:504
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   * Select bowler from mobile list
+
+   check_match_7_events.php:5
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT count(*) FROM events WHERE match_id = ?");
+
+   classes\BaseModel.php:82
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM {$this->tableName} WHERE {$this->primaryKey} = :id LIMIT 1";
+
+   classes\BaseModel.php:97
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM {$this->tableName}";
+
+   classes\BaseModel.php:128
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT 1 FROM {$this->tableName} WHERE {$this->primaryKey} = :id LIMIT 1";
+
+   classes\BaseModel.php:140
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT COUNT(*) as count FROM {$this->tableName}";
+
+   classes\Commentary.php:117
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT player_id, name FROM players WHERE player_id IN ($placeholders)";
+
+   classes\Event.php:48
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $getAppearanceSql = "SELECT appearance_id FROM player_appearances
+
+   classes\EventRepository.php:61
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT MAX(assigned_server_seq) as max_seq FROM events WHERE match_id = :match_id";
+
+   classes\EventRepository.php:78
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT COUNT(*) as cnt FROM events
+
+   classes\MatchFlowService.php:361
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $deleteSql = "DELETE FROM player_appearances WHERE match_id = :match_id AND team_id = :team_id";
+
+   classes\MatchModel.php:234
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM events_suspense WHERE match_id = :match_id";
+
+   classes\MatchModel.php:238
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM events WHERE match_id = :match_id";
+
+   classes\MatchModel.php:242
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM stats_cache WHERE match_id = :match_id";
+
+   classes\MatchModel.php:246
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM player_edits WHERE match_id = :match_id";
+
+   classes\MatchModel.php:250
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM player_appearances WHERE match_id = :match_id";
+
+   classes\MatchModel.php:254
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM potm_decisions WHERE match_id = :match_id";
+
+   classes\MatchModel.php:258
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM clone_links WHERE source_match_id = :match_id OR target_match_id = :match_id2";
+
+   classes\MatchModel.php:262
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM match_locks WHERE match_id = :match_id";
+
+   classes\MatchModel.php:266
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM {$this->tableName} WHERE {$this->primaryKey} = :match_id";
+
+   classes\MatchModel.php:334
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM player_appearances WHERE match_id = :match_id AND team_id = :team_id";
+
+   classes\MatchStateMachine.php:155
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $team1Sql = "SELECT COUNT(DISTINCT player_id) as count FROM player_appearances
+
+   classes\MatchStateMachine.php:161
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $team2Sql = "SELECT COUNT(DISTINCT player_id) as count FROM player_appearances
+
+   classes\MatchStatsService.php:65
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $this->db->prepare("SELECT player_id, name FROM players");
+
+   classes\MatchStatsService.php:306
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $this->db->prepare("SELECT name FROM players WHERE player_id = ?");
+
+   classes\Player.php:37
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT DISTINCT p.* FROM {$this->tableName} p";
+
+   classes\Player.php:149
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE e FROM events e
+
+   classes\Player.php:155
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM stats_cache WHERE player_id = :player_id";
+
+   classes\Player.php:159
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE pe FROM player_edits pe
+
+   classes\Player.php:165
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM player_appearances WHERE player_id = :player_id";
+
+   classes\Player.php:169
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM potm_decisions
+
+   classes\Player.php:174
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM pots_aggregate WHERE player_id = :player_id";
+
+   classes\Player.php:178
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM {$this->tableName} WHERE {$this->primaryKey} = :player_id";
+
+   classes\RateLimiter.php:89
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT count FROM rate_limits
+
+   classes\RateLimiter.php:123
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM rate_limits WHERE expires_at < NOW()";
+
+   classes\Series.php:37
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM {$this->tableName} ORDER BY start_date DESC, created_at DESC";
+
+   classes\Series.php:61
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM {$this->tableName} WHERE name = :name LIMIT 1";
+
+   classes\Series.php:126
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM {$this->tableName} WHERE {$this->primaryKey} = :series_id";
+
+   classes\StatsCalculator.php:25
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $appearancesSql = "SELECT player_id, appearance_id FROM player_appearances WHERE match_id = ?";
+
+   classes\StatsCalculator.php:237
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM batting_stats WHERE match_id = ?";
+
+   classes\StatsCalculator.php:250
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM bowling_stats WHERE match_id = ?";
+
+   classes\Team.php:48
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM {$this->tableName} ORDER BY name ASC";
+
+   classes\Team.php:259
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT COUNT(*) as count FROM {$table} WHERE {$field} = :team_id";
+
+   classes\Team.php:386
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM {$this->tableName} WHERE {$this->primaryKey} = :team_id";
+
+   classes\User.php:242
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "DELETE FROM {$this->tableName} WHERE {$this->primaryKey} = :user_id";
+
+   cron\stats-recompute.php:142
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $getStatsSql = "SELECT * FROM stats_cache
+
+   debug_check_db.php:9
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT event_id, payload_json FROM events WHERE match_id = ?");
+
+   debug_events.php:7
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT match_id, team1_name, team2_name, state FROM matches ORDER BY match_id DESC LIMIT 1");
+
+   debug_events.php:14
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT COUNT(*) FROM events WHERE match_id = ?");
+
+   debug_events.php:21
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT event_id, event_type, payload_json, created_at FROM events WHERE match_id = ? ORDER BY event_id DESC LIMIT 5");
+
+   debug_event_insert.php:8
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT match_id, team1_id, team2_id, current_innings FROM matches ORDER BY match_id DESC LIMIT 1");
+
+   debug_event_insert.php:55
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT * FROM batting_stats WHERE match_id = ?");
+
+   debug_public_view.php:12
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $count = $db->query("SELECT COUNT(*) FROM events WHERE match_id = $matchId")->fetchColumn();
+
+   debug_server_error.php:15
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT match_id, last_seq FROM matches WHERE state IN ('live', 'draft') ORDER BY match_id DESC LIMIT 1");
+
+   debug_state_app.php:14
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   // $stmt = $db->prepare("DELETE FROM events WHERE match_id = :id AND client_id = 'debug-client'");
+
+   find_match_id.php:4
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT match_id, team1_id, team2_id, state FROM matches");
+
+   get_player_id.php:4
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT player_id FROM players LIMIT 1");
+
+   login.php:39
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
+
+   login.php:90
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
+
+   match-view.php:298
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT name FROM players WHERE player_id = :pid");
+
+   match-view.php:380
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT name FROM players WHERE player_id = :pid");
+
+   match-view.php:562
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT name FROM players WHERE player_id = :pid");
+
+   match-view.php:577
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT name FROM players WHERE player_id = :pid");
+
+   match_exists_check.php:6
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT * FROM matches WHERE match_id = ?");
+
+   match_exists_check.php:18
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT count(*) FROM matches");
+
+   match_exists_check.php:21
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT count(*) FROM events WHERE match_id = ?");
+
+   match_exists_check.php:25
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->query("SELECT count(*) FROM events");
+
+   public\assets\js\flow.js:161
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   const selected = Array.from(form.querySelectorAll('input[name="player_ids[]"]:checked'))
+
+   rules_structured\automation\check-architecture.js:26
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   pattern: /(SELECT|INSERT|UPDATE|DELETE).*FROM/gi,
+
+   rules_structured\automation\check-architecture.js:30
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   const hasSQL = /(SELECT|INSERT|UPDATE|DELETE).*FROM/gi.test(content);
+
+   simple_db_check.php:10
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT count(*) FROM events WHERE match_id = ?");
+
+   simple_db_check.php:15
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT last_seq FROM matches WHERE match_id = ?");
+
+   user-login.php:42
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   $stmt = $db->prepare("SELECT user_id, username, password_hash, full_name FROM users WHERE username = :username AND is_active = 1");
+
+   zenith-haven\client\components\ui\select.tsx:2
+   Tight coupling - SQL queries in presentation layer (use services/repositories)
+   import * as SelectPrimitive from "@radix-ui/react-select";
+
+ΓÜá∩╕Å  HIGH (46):
+   admin\database\reset-old-backup.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\login.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\logs\index.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\archive\auto-setup.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\archive\score-debug.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\index-old-backup.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\scorer-backup-20251209-152847.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\scorer-legacy.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\scorer-old-backup.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\scorer.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\matches\view-old-backup.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   admin\stats\index.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   api\v1\admin.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   api\v1\events.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   api\v1\matches.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   api\v1\players.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   api\v1\users.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   apps\admin\src\pages\Dashboard.jsx:3
+   Potential circular dependency - excessive parent directory imports
+   import MatchesList from '../components/MatchesList'
+
+   apps\admin\src\pages\Dashboard.jsx:5
+   Potential circular dependency - excessive parent directory imports
+   import PlayersList from '../components/PlayersList'
+
+   apps\admin\src\pages\Dashboard.jsx:7
+   Potential circular dependency - excessive parent directory imports
+   import UsersList from '../components/UsersList'
+
+   apps\admin\src\pages\Dashboard.jsx:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   apps\admin\src\scorer\Scorer.jsx:3
+   Potential circular dependency - excessive parent directory imports
+   import PlayerSelectModal from '../components/PlayerSelectModal'
+
+   apps\admin\vite.config.js:11
+   Hardcoded configuration - use environment variables or config files
+   target: 'http://127.0.0.1/cricapp',
+
+   apps\admin\vite.config.js:16
+   Hardcoded configuration - use environment variables or config files
+   target: 'http://127.0.0.1/cricapp',
+
+   apps\web\src\pages\Home.jsx:3
+   Potential circular dependency - excessive parent directory imports
+   import BottomNav from '../components/BottomNav'
+
+   apps\web\src\pages\MatchDetail.jsx:3
+   Potential circular dependency - excessive parent directory imports
+   import Scorecard from '../components/Scorecard'
+
+   apps\web\src\pages\Matches.jsx:3
+   Potential circular dependency - excessive parent directory imports
+   import BottomNav from '../components/BottomNav'
+
+   apps\web\src\pages\Series.jsx:2
+   Potential circular dependency - excessive parent directory imports
+   import BottomNav from '../components/BottomNav'
+
+   apps\web\src\pages\Stats.jsx:2
+   Potential circular dependency - excessive parent directory imports
+   import BottomNav from '../components/BottomNav'
+
+   apps\web\vite.config.js:11
+   Hardcoded configuration - use environment variables or config files
+   target: 'http://127.0.0.1/cricapp',
+
+   apps\web\vite.config.js:16
+   Hardcoded configuration - use environment variables or config files
+   target: 'http://127.0.0.1/cricapp',
+
+   archive\clear-cache.php:7
+   Hardcoded configuration - use environment variables or config files
+   // Security: Only allow from localhost
+
+   archive\clear-cache.php:8
+   Hardcoded configuration - use environment variables or config files
+   if (!in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1'])) {
+
+   assets\js\admin\matches\score-modals.js:1
+   God class detected - class has >20 methods (violates Single Responsibility)
+   (See file)
+
+   classes\Database.php:28
+   Missing dependency injection - instantiating dependencies directly
+   $this->connection = new PDO(
+
+   includes\bootstrap.php:41
+   Hardcoded configuration - use environment variables or config files
+   // Load development configuration (disables caching on localhost)
+
+   includes\config.local.php:10
+   Hardcoded configuration - use environment variables or config files
+   define('DB_HOST', 'localhost');
+
+   includes\config.php:91
+   Hardcoded configuration - use environment variables or config files
+   $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+   includes\config.php:97
+   Hardcoded configuration - use environment variables or config files
+   define('DB_HOST', 'localhost');
+
+   includes\dev-config.php:57
+   Hardcoded configuration - use environment variables or config files
+   // Check if running on localhost
+
+   includes\dev-config.php:59
+   Hardcoded configuration - use environment variables or config files
+   'localhost',
+
+   includes\utils.php:38
+   Hardcoded configuration - use environment variables or config files
+   $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+   rules_structured\automation\check-architecture.js:79
+   Hardcoded configuration - use environment variables or config files
+   pattern: /(localhost|127\.0\.0\.1|3306|5432|mongodb:\/\/)/g,
+
+   tests\verify_match_flow.php:1
+   Potential circular dependency - excessive parent directory imports
+   (See file)
+
+   zenith-haven\netlify\functions\api.ts:3
+   Potential circular dependency - excessive parent directory imports
+   import { createServer } from "../../server";
+
+   zenith-haven\server\node-build.ts:27
+   Hardcoded configuration - use environment variables or config files
+   console.log(`≡ƒô▒ Frontend: http://localhost:${port}`);
+
+Γä╣∩╕Å  MEDIUM (40):
+   admin\includes\sidebar.php:1
+   Missing AIS documentation - add @purpose, @module, @dependencies
+
+   api\v1\matches.php:1
+   Missing AIS documentation - add @purpose, @module, @dependencies
+
+   assets\js\admin\matches\score-modals.js:1
+   Missing AIS documentation - add @purpose, @module, @dependencies
+
+   assets\js\match-flow.js:1
+   Missing AIS documentation - add @purpose, @module, @dependencies
+
+   assets\js\pages\match-console.js:1
+   Missing AIS documentation - add @purpose, @module, @dependencies
+
+   ... and 35 more
+

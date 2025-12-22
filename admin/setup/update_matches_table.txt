@@ -1,0 +1,9 @@
+-- Add Match Settings Columns
+ALTER TABLE matches ADD COLUMN ball_type VARCHAR(20) NULL DEFAULT 'leather';
+ALTER TABLE matches ADD COLUMN pitch_type VARCHAR(20) NULL DEFAULT 'turf';
+ALTER TABLE matches ADD COLUMN match_type VARCHAR(20) NULL DEFAULT 'limited_overs';
+
+-- Add Match Officials Columns
+ALTER TABLE matches ADD COLUMN umpire1_name VARCHAR(100) NULL;
+ALTER TABLE matches ADD COLUMN umpire2_name VARCHAR(100) NULL;
+ALTER TABLE matches ADD COLUMN scorer_name VARCHAR(100) NULL;

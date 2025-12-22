@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "defaults": {
+    "TEST": "YES",
+    "ASSURANCE": "OFF",
+    "APPLY": "NO"
+  },
+  "thresholds": {
+    "confidenceThreshold": 0.8,
+    "maxFilesChange": 5,
+    "applyRiskMax": 0.6,
+    "coverageThreshold": 0.7
+  },
+  "budgets": {
+    "web": { "FCP": 1500, "LCP": 2500, "TTI": 3000 },
+    "api": { "p95LatencyMs": 200, "errorRate": 0.01 }
+  },
+  "security": {
+    "failOn": ["high"],
+    "tools": { "semgrep": false, "gitleaks": false },
+    "semgrepConfig": ".semgrep.yaml",
+    "gitleaksConfig": ".gitleaks.toml"
+  },
+  "consistency": {
+    "openapiPath": "ops/openapi.json",
+    "db": {
+      "schemaSql": "ops/db/schema.sql",
+      "migrationsDir": "ops/db/migrations"
+    }
+  },
+  "tools": {
+    "performance": {
+      "lighthouse": false,
+      "k6": false
+    },
+    "docs": {
+      "generateOpenAPI": true,
+      "moduleGraph": true,
+      "readmeDelta": true
+    }
+  }
+}
+
+

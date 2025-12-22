@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorer UI Test - Modal Fix Demo</title>
+    <link rel="stylesheet" href="../../assets/css/pages/scorer-enhanced.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="scorer-app">
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-top">
+            <div class="match-teams">
+                <span class="team-name">IND</span>
+                <span class="vs">vs</span>
+                <span class="team-name">AUS</span>
+            </div>
+            <div class="match-status-badge">1st Innings</div>
+        </div>
+        
+        <div class="score-board">
+            <div class="main-score">
+                <span id="score-runs-display">45</span>/<span id="score-wickets-display">2</span>
+            </div>
+            <div class="overs-display">
+                <span id="score-overs-display">(8.3)</span>
+            </div>
+            <div class="rates-display">
+                <span>CRR: <strong id="run-rate">5.29</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-content">
+        <!-- Scorer Middle Panel -->
+        <div class="scorer-middle-panel">
+            <!-- Batsmen Row - Horizontal -->
+            <div class="batsmen-row">
+                <!-- Striker -->
+                <div class="batsman-item active" onclick="openPlayerSelect('striker')" id="striker-status">
+                    <div class="batsman-label">
+                        <span class="indicator">🏏</span>
+                        <span>Striker</span>
+                    </div>
+                    <div class="batsman-name" id="striker-name-display">Virat Kohli</div>
+                    <div class="batsman-stats">
+                        <span class="runs" id="striker-runs-display">23</span>
+                        <span>(<span id="striker-balls-display">18</span>)</span>
+                    </div>
+                </div>
+                
+                <!-- Non-Striker -->
+                <div class="batsman-item" onclick="openPlayerSelect('non-striker')">
+                    <div class="batsman-label">
+                        <span>Non-Striker</span>
+                    </div>
+                    <div class="batsman-name" id="non-striker-name-display">Rohit Sharma</div>
+                    <div class="batsman-stats">
+                        <span class="runs" id="non-striker-runs-display">22</span>
+                        <span>(<span id="non-striker-balls-display">15</span>)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bowler & Current Over Row -->
+            <div class="bowler-row">
+                <!-- Bowler -->
+                <div class="bowler-item" onclick="openPlayerSelect('bowler')">
+                    <div class="bowler-label">
+                        <span class="indicator">⚾</span>
+                        <span>Bowler</span>
+                    </div>
+                    <div class="bowler-name" id="bowler-name-display">Pat Cummins</div>
+                    <div class="bowler-stats">
+                        <span id="bowler-overs-display">4.3</span>-<span id="bowler-maidens-display">1</span>-<span id="bowler-runs-display">18</span>-<span id="bowler-wickets-display">1</span>
+                    </div>
+                </div>
+                
+                <!-- Current Over -->
+                <div class="current-over-display">
+                    <div class="current-over-label">Current Over</div>
+                    <div class="current-over-balls" id="ball-tracker">
+                        <div class="ball-item ball-run">1</div>
+                        <div class="ball-item ball-dot">•</div>
+                        <div class="ball-item ball-four">4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Keypad (Fixed Bottom) -->
+    <div class="keypad-container">
+        <div class="keypad-grid">
+            <!-- Row 1: Runs -->
+            <button class="key-btn">0</button>
+            <button class="key-btn">1</button>
+            <button class="key-btn">2</button>
+            <button class="key-btn">3</button>
+            
+            <!-- Row 2: Boundaries & Runs -->
+            <button class="key-btn btn-four">4</button>
+            <button class="key-btn btn-six">6</button>
+            <button class="key-btn">5</button>
+            <button class="key-btn">7+</button>
+            
+            <!-- Row 3: Extras -->
+            <button class="key-btn btn-extra">WD</button>
+            <button class="key-btn btn-extra">NB</button>
+            <button class="key-btn btn-extra">BYE</button>
+            <button class="key-btn btn-extra">LB</button>
+            
+            <!-- Row 4: Actions -->
+            <button class="key-btn btn-wicket" onclick="showWicketModal()">OUT</button>
+            <button class="key-btn btn-action" disabled>UNDO</button>
+            <button class="key-btn btn-action">SWAP</button>
+            <button class="key-btn btn-action" onclick="showExtrasModal()">...</button>
+        </div>
+    </div>
+
+    <!-- Player Selection Modal -->
+    <div class="modal-overlay" id="player-modal" onclick="closeModal(event)" hidden>
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Select Player</h3>
+                <button type="button" class="btn-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Striker List -->
+                <div class="player-list" id="striker-list" style="display: none;">
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Virat Kohli</span>
+                            <span class="role">Batsman</span>
+                        </div>
+                    </button>
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Rohit Sharma</span>
+                            <span class="role">Batsman</span>
+                        </div>
+                    </button>
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">KL Rahul</span>
+                            <span class="role">Batsman</span>
+                        </div>
+                    </button>
+                </div>
+                <!-- Non-Striker List -->
+                <div class="player-list" id="non-striker-list" style="display: none;">
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Virat Kohli</span>
+                            <span class="role">Batsman</span>
+                        </div>
+                    </button>
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Rohit Sharma</span>
+                            <span class="role">Batsman</span>
+                        </div>
+                    </button>
+                </div>
+                <!-- Bowler List -->
+                <div class="player-list" id="bowler-list" style="display: none;">
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Pat Cummins</span>
+                            <span class="role">Bowler</span>
+                        </div>
+                    </button>
+                    <button class="player-list-item">
+                        <div class="player-info">
+                            <span class="name">Mitchell Starc</span>
+                            <span class="role">Bowler</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wicket Modal -->
+    <div class="modal-overlay" id="wicket-modal" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Wicket Type</h3>
+                <button type="button" class="btn-close" onclick="closeWicketModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="wicket-grid">
+                    <button class="wicket-option-btn">Bowled</button>
+                    <button class="wicket-option-btn">Caught</button>
+                    <button class="wicket-option-btn">LBW</button>
+                    <button class="wicket-option-btn">Run Out</button>
+                    <button class="wicket-option-btn">Stumped</button>
+                    <button class="wicket-option-btn">Hit Wicket</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/score-modals.js"></script>
+    <script>
+        // Test notification
+        setTimeout(() => {
+            alert('✅ Scorer UI Test Page Loaded!\n\nClick on:\n- Striker/Non-Striker to test player selection\n- Bowler to test bowler selection\n- OUT button to test wicket modal\n- ... button to test extras modal');
+        }, 500);
+    </script>
+</body>
+</html>

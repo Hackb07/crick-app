@@ -1,0 +1,233 @@
+/* Ultra-Optimized Mobile Scorer - Maximum Space Efficiency */
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* Header - Compact */
+.app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: white !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.match-header {
+    margin-bottom: 4px;
+}
+
+.match-title-text {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.score-board {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.main-score {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.overs-display {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+/* Content - Compact */
+.app-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.scorer-middle-panel {
+    padding: 8px !important;
+    padding-bottom: 70px !important;
+}
+
+/* Batsmen - Tighter */
+.batsmen-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+}
+
+.batsman-item {
+    background: white !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    border: 2px solid #e2e8f0 !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+
+.batsman-item:active {
+    transform: scale(0.98);
+}
+
+.batsman-item.active {
+    border-color: #10b981 !important;
+    background: linear-gradient(to bottom, #f0fdf4, #dcfce7) !important;
+}
+
+.batsman-label {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 3px !important;
+    opacity: 0.7 !important;
+}
+
+.batsman-name {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin-bottom: 3px !important;
+    color: #0f172a !important;
+}
+
+.batsman-stats {
+    font-size: 11px !important;
+    color: #64748b !important;
+}
+
+/* Bowler - Compact */
+.bowler-row {
+    background: white !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.bowler-item {
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    margin-bottom: 8px !important;
+    cursor: pointer !important;
+}
+
+.bowler-label {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 3px !important;
+    color: #f59e0b !important;
+}
+
+.bowler-name {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin-bottom: 3px !important;
+    color: #0f172a !important;
+}
+
+.bowler-stats {
+    font-size: 11px !important;
+    color: #64748b !important;
+}
+
+/* Current Over - Compact */
+.current-over-label {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    color: #64748b !important;
+    margin-bottom: 4px !important;
+}
+
+.current-over-balls {
+    display: flex !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+}
+
+/* Keypad - Bigger Touch Targets */
+.keypad-container {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: white !important;
+    padding: 8px !important;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !important;
+    z-index: 90 !important;
+}
+
+.keypad {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
+}
+
+.keypad button {
+    min-height: 48px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+
+.keypad button:active {
+    transform: scale(0.95) !important;
+}
+
+/* Better Colors */
+.batsman-item.active .batsman-name {
+    color: #059669 !important;
+}
+
+.bowler-item .bowler-name {
+    color: #d97706 !important;
+}
+
+/* Tablet */
+@media (min-width: 640px) {
+    .scorer-middle-panel {
+        padding: 12px !important;
+    }
+
+    .batsmen-row {
+        gap: 8px !important;
+    }
+
+    .keypad {
+        max-width: 500px !important;
+        gap: 8px !important;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .scorer-middle-panel {
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+        padding: 16px !important;
+    }
+
+    .keypad-container {
+        position: static !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin-top: 16px !important;
+    }
+}

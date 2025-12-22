@@ -1,0 +1,127 @@
+CricApp — Premium UI/UX Spec (Admin + Public)
+
+Goal: Deliver a premium mobile-first experience for CricApp that feels modern, performant, and trustworthy. Two distinct interfaces: Public (fans, players) and Admin (match managers, scorers). Shared design system, consistent patterns, and prioritized performance.
+
+Executive summary
+
+Platform: Mobile-first responsive. Native feel via PWA; option to wrap in WebView later.
+
+Look & feel: Modern, elevated (soft shadows, glass surfaces, 2xl rounded corners), micro-interactions, 60fps transitions.
+
+Tone: Fast, confident, data-first. Emphasize live updates, clarity of scores, and admin efficiency.
+
+Delivery: Preview UI → tasks → implement (Enhance-V7 flow). Default APPLY=NO.
+
+Product personas & primary journeys
+
+Public (Fan)
+
+Quick discovery of live matches, leaderboard, match details, notifications.
+
+Lightweight bottom nav: Home, Matches, Scorecard (live), Leaderboard, Profile.
+
+Micro-interactions: animated score tick, pull-to-refresh, skeleton loaders.
+
+Admin (Manager / Scorer)
+
+Quick match creation, player/team management, in-match scoring console, match lifecycle (start/finish), audit logs.
+
+Persistent bottom toolbar with high-priority actions: Start Match, Quick Score, Pause, End.
+
+Real-time control panel with optimistic UI, undo, and replay of last actions.
+
+Core features (MVP + Premium)
+Public view (MVP)
+
+Home feed: upcoming matches, pinned highlights.
+
+Matches list: filter by series, date, team.
+
+Live match view: ball-by-ball feed, scoreboard, player stats.
+
+Leaderboard: sortable by runs, wickets, averages. Live sync.
+
+Notifications: match start, innings end, milestones.
+
+Profile: saved teams, preferences.
+
+Admin view (MVP)
+
+Dashboard: active matches, pending approvals, quick stats.
+
+Match CRUD: create, schedule, toss, assign umpires, set overs.
+
+Scoring console: ball entry, extras, change striker, wicket flow, undo.
+
+Players & Teams: add/edit/import CSV.
+
+Match lifecycle: Start → Pause → Resume → Complete (with validations).
+
+Audit & export: CSV / PDF match scorecards.
+
+Premium / Nice-to-have
+
+Dark mode + theme switcher.
+
+Realtime presence indicators (who’s scoring).
+
+Rich charts: win probability, worm chart.
+
+Live commentary microinteractions (emoji reactions).
+
+Admin bulk actions & role management.
+
+UI Patterns & Components (Design System)
+
+Base tokens (Tailwind config): primary #1E3A8A, accent #06B6D4, bg #0F172A, surface white/soft, radius 2xl.
+
+Typography: system font stack + bold headline, 16px base, responsive scales.
+
+Components:
+
+BottomNav (5 tabs public) — sticky, elevated card, haptic feedback.
+
+AdminBottomBar — floating action cluster with primary CTA (Start/Quick Score).
+
+ScoreCard — compact & expanded view. Shows overs, run rate, wickets.
+
+BallTicker — animated microcomponent for each ball entry.
+
+MatchForm — stepper: teams → overs → toss → schedule.
+
+Modal/Drawer patterns for quick edits.
+
+Toast & snackbar for confirmations with undo.
+
+Interaction/UX rules
+
+Always show skeleton loaders for network latency >200ms.
+
+Use optimistic updates for admin scoring with server reconciliation; show small spinner if reconciliation pending.
+
+Undo window 7s with action queue.
+
+When an event is deleted, leaderboard recalculation happens instantly in-memory and via background reconciliation. UI shows “Recalculating…” banner if needed.
+
+Accessibility: WCAG AA colors, keyboard focusable, aria labels for live scores (aria-live="polite").
+
+Navigation (Bottom menu)
+Public BottomNav (5 tabs)
+
+Home (feed)
+
+Matches (list & calendar)
+
+Live (active scorecards / quick jump)
+
+Leaderboard (filter + sort)
+
+Profile (settings, saved)
+
+Admin BottomBar (persistent floating)
+
+Left: Quick Tools icon → opens action sheet (Import players, CSV).
+
+Center: Primary CTA (Start / Quick Score) — circular, elevated.
+
+Right: Actions (Pause, End) + overflow menu (Settings, Logs).

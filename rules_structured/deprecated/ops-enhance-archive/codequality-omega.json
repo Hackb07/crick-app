@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "RULE 5 (OMEGA EDITION) — Code Quality Configuration",
+  "version": "1.0.0",
+  "structural": {
+    "maxFunctionLength": 50,
+    "maxClassLength": 300,
+    "maxCyclomaticComplexity": 10,
+    "maxCognitiveComplexity": 15,
+    "maxNestingDepth": 3,
+    "requireStrictTypes": true,
+    "requireReturnTypes": true,
+    "requireParameterTypes": true,
+    "requireVisibilityKeywords": true,
+    "forbidDeadCode": true,
+    "forbidUnusedVariables": true,
+    "forbidUnreachableBranches": true,
+    "forbidMagicNumbers": true
+  },
+  "behavioral": {
+    "allowGlobalStateMutation": false,
+    "requireServiceLayerPurity": true,
+    "requireRepositoryPattern": true,
+    "forbidBusinessLogicInControllers": true,
+    "forbidSilentExceptionSwallowing": true,
+    "forbidHiddenIO": true,
+    "forbidUnpredictableSideEffects": true,
+    "forbidStateMutationInReadOnlyFunctions": true,
+    "forbidBlockingCallsInAsyncPaths": true
+  },
+  "readability": {
+    "requirePublicMethodDocblocks": true,
+    "requireDomainVocabulary": true,
+    "bannedNames": [
+      "Util",
+      "Utils",
+      "Utility",
+      "Helper",
+      "Helpers",
+      "Data",
+      "DataManager",
+      "Foo",
+      "Bar",
+      "Baz",
+      "Test",
+      "Temp",
+      "Tmp",
+      "X1",
+      "X2",
+      "Y1",
+      "Y2"
+    ],
+    "bannedPrefixesSuffixes": [
+      "Manager",
+      "Processor",
+      "Handler"
+    ],
+    "requireSemanticNaming": true,
+    "requireSelfDocumentingCode": true
+  },
+  "predictability": {
+    "requireDeterministicBehavior": true,
+    "requireConsistentErrorModel": true,
+    "requireConsistentLoggingFormat": true,
+    "requireConsistentNamingLogic": true,
+    "requireConsistentFolderStructure": true
+  },
+  "testability": {
+    "requireDependencyInjection": true,
+    "requireMockability": true,
+    "forbidHiddenDatabaseCalls": true,
+    "forbidTightlyCoupledModules": true,
+    "preferPureFunctions": true,
+    "requireDeterministicOutputs": true
+  },
+  "maintainability": {
+    "maxDuplicationPercent": 5,
+    "minMaintainabilityIndex": 70,
+    "monitorFileChurn": true,
+    "monitorMethodChurn": true,
+    "requirePublicMethodDocblocks": true,
+    "requireDomainEventsDocumentation": true,
+    "requireDomainInvariantsDocumentation": true
+  },
+  "crossLanguage": {
+    "requireIdenticalDomainVocabulary": true,
+    "requireIdenticalErrorTaxonomy": true,
+    "requireIdenticalLoggingSchema": true,
+    "requireIdenticalModuleBoundaries": true,
+    "requireIdenticalBusinessNamingConventions": true
+  },
+  "hardBans": {
+    "commentedCode": true,
+    "debugLeftovers": true,
+    "godClasses": true,
+    "copyPasteLogic": true,
+    "inlineSQL": true,
+    "nestedConditionalsBeyond3": true,
+    "mutableGlobalState": true,
+    "directDBAccessFromControllers": true,
+    "dynamicEvaluation": true,
+    "ambiguousExceptions": true,
+    "unusedErrorBranches": true,
+    "inconsistentReturnPatterns": true
+  },
+  "enforcement": {
+    "preCommit": {
+      "enabled": true,
+      "hooks": ["format", "lint", "typeCheck", "quickASTScan"]
+    },
+    "prPipeline": {
+      "enabled": true,
+      "scans": [
+        "astStructural",
+        "dependencyHygiene",
+        "semanticNaming",
+        "duplication",
+        "complexity",
+        "maintainabilityIndex",
+        "testability",
+        "aiSemanticReview",
+        "aiCriticReview"
+      ]
+    },
+    "nightly": {
+      "enabled": true,
+      "checks": [
+        "qualityDrift",
+        "maintainabilityRegression",
+        "namingRegression",
+        "boundaryDrift",
+        "duplicateLogicCreep"
+      ]
+    },
+    "zeroTrustExecutionBlocks": {
+      "enabled": true,
+      "blockAIGeneration": true,
+      "blockLocalDevServer": true,
+      "blockPRPipeline": true,
+      "showEditorWarning": true
+    }
+  },
+  "exceptions": {
+    "allowedFor": ["migrations", "bootstrap", "framework"],
+    "maxExpiryDays": 14,
+    "requireApproval": ["principal_engineer", "qa_lead"],
+    "requireCompensatingTests": true,
+    "exceptionFile": "ops/enhance/exceptions.json"
+  },
+  "tools": {
+    "astAnalyzers": {
+      "javascript": ["eslint", "typescript"],
+      "php": ["phpstan", "psalm", "phpcs"],
+      "python": ["pylint", "mypy", "radon"],
+      "go": ["golangci-lint", "go-vet"],
+      "java": ["checkstyle", "pmd", "spotbugs"]
+    },
+    "semanticAnalyzers": {
+      "namingIntent": "ai-based",
+      "domainVocabulary": "glossary-based",
+      "crossLanguageConsistency": "custom-tool"
+    },
+    "testabilityAnalyzers": {
+      "dependencyInjection": "ast-based",
+      "mockability": "static-analysis",
+      "hiddenIO": "ast-based"
+    },
+    "maintainabilityAnalyzers": {
+      "duplication": ["sonarqube", "jscpd", "pmd-cpd"],
+      "maintainabilityIndex": ["radon", "codeclimate", "sonarqube"],
+      "churnMonitoring": "git-based"
+    },
+    "behavioralAnalyzers": {
+      "sideEffectDetection": "ast-based",
+      "globalStateMutation": "static-analysis",
+      "silentExceptionSwallowing": "ast-based"
+    }
+  }
+}
+

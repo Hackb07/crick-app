@@ -1,0 +1,354 @@
+{
+  "without": [
+    {
+      "type": "simple",
+      "query": "add a player profile page",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906947173,
+        "endTime": 1761906947173,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 0,
+          "estimatedMs": 0
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "complex",
+      "query": "implement match scoring with live updates",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906947177,
+        "endTime": 1761906947177,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 0,
+          "estimatedMs": 0
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "bug",
+      "query": "fix login authentication issue",
+      "category": "bug",
+      "metrics": {
+        "startTime": 1761906947180,
+        "endTime": 1761906947180,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 0,
+          "estimatedMs": 0
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "design",
+      "query": "create a mobile-responsive match view",
+      "category": "design",
+      "metrics": {
+        "startTime": 1761906947184,
+        "endTime": 1761906947184,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 0,
+          "estimatedMs": 0
+        }
+      },
+      "mode": "without"
+    },
+    {
+      "type": "test",
+      "query": "add unit tests for player class",
+      "category": "test",
+      "metrics": {
+        "startTime": 1761906947187,
+        "endTime": 1761906947187,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 0,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [],
+        "rulesTriggered": [],
+        "estimatedOverhead": {
+          "processSpawns": 0,
+          "estimatedMs": 0
+        }
+      },
+      "mode": "without"
+    }
+  ],
+  "with": [
+    {
+      "type": "simple",
+      "query": "add a player profile page",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906947191,
+        "endTime": 1761906947192,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "rulesTriggered": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "complex",
+      "query": "implement match scoring with live updates",
+      "category": "feature",
+      "metrics": {
+        "startTime": 1761906947193,
+        "endTime": 1761906947194,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "rulesTriggered": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "bug",
+      "query": "fix login authentication issue",
+      "category": "bug",
+      "metrics": {
+        "startTime": 1761906947200,
+        "endTime": 1761906947201,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "rulesTriggered": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "design",
+      "query": "create a mobile-responsive match view",
+      "category": "design",
+      "metrics": {
+        "startTime": 1761906947203,
+        "endTime": 1761906947204,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "rulesTriggered": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    },
+    {
+      "type": "test",
+      "query": "add unit tests for player class",
+      "category": "test",
+      "metrics": {
+        "startTime": 1761906947206,
+        "endTime": 1761906947207,
+        "processSpawns": 0,
+        "fileIO": {
+          "reads": 3,
+          "writes": 0
+        },
+        "filesCreated": [],
+        "filesModified": [],
+        "errors": [],
+        "duration": 1,
+        "filesCreatedCount": 0,
+        "totalFileIO": 3
+      },
+      "analysis": {
+        "toolsExecuted": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "rulesTriggered": [
+          "prompt-enhancer-v7",
+          "semantic-trigger-v7",
+          "enhance-v7-master",
+          "telemetry-emitter-v7"
+        ],
+        "estimatedOverhead": {
+          "processSpawns": 12,
+          "estimatedMs": 900
+        }
+      },
+      "mode": "with"
+    }
+  ],
+  "summary": {
+    "avgDurationWithout": 0,
+    "avgDurationWith": 1,
+    "avgOverheadWithout": 0,
+    "avgOverheadWith": 900,
+    "overheadDifference": 900,
+    "percentageIncrease": null
+  }
+}

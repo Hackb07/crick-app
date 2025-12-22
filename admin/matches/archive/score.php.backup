@@ -1,0 +1,3355 @@
+<?php
+/**
+ * Match Scoring Interface - Admin Panel
+ * 
+ * Ball-by-ball scoring interface for live matches
+ * Complete implementation per PROJECT_SPECIFICATION.md Section 7.1
+ */
+
+require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/session.php';
+require_once __DIR__ . '/../../includes/utils.php';
+require_once __DIR__ . '/../includes/sidebar.php';
+
+// Allow both admin and scorer roles
+if (!isLoggedIn()) {
+    header('Location: ' . adminUrl('login.php'));
+    exit;
+}
+
+$matchId = (int)getQuery('id', 0);
+$isScorer = (getSession('role') === 'scorer');
+$redirectUrl = $isScorer ? adminUrl('scorer/index.php') : adminUrl('matches/');
+
+if (!$matchId) {
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+$matchModel = new MatchModel();
+// Force fresh fetch from database (don't use cache)
+$match = $matchModel->getById($matchId);
+
+if (!$match) {
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+// Only allow scoring for live matches
+if ($match['state'] !== 'live') {
+    if ($isScorer) {
+        header('Location: ' . adminUrl('scorer/index.php'));
+    } else {
+        header('Location: ' . adminUrl('matches/view.php?id=' . $matchId));
+    }
+    exit;
+}
+
+// Force refresh match data if cache-busting parameter is present
+if (getQuery('_t')) {
+    // Clear any potential caching and force fresh database read
+    $refreshedMatch = $matchModel->getById($matchId);
+    if ($refreshedMatch) {
+        $match = $refreshedMatch;
+    }
+    // If refresh fails, keep using original $match
+}
+
+// Ensure match exists (double-check after potential refresh)
+if (!$match) {
+    header('Location: ' . $redirectUrl);
+    exit;
+}
+
+// Get teams
+$teamModel = new Team();
+$teams = $teamModel->getAll();
+
+// Get players for both teams - filter by player_appearances for this match
+$playerModel = new Player();
+$db = Database::getInstance()->getConnection();
+
+// Determine current innings before using it
+$currentInnings = $match['current_innings'] ?? 1;
+
+// Get batting team players (from player_appearances)
+$battingTeamId = getBattingTeam($match, $currentInnings);
+$bowlingTeamId = ($battingTeamId == $match['team1_id']) ? $match['team2_id'] : $match['team1_id'];
+
+// Get players from player_appearances for this match (including guests)
+$battingTeamPlayersSql = "SELECT DISTINCT p.player_id, p.name, p.batting_hand, p.bowling_style, COALESCE(pa.is_guest, 0) as is_guest
+                         FROM players p
+                         INNER JOIN player_appearances pa ON p.player_id = pa.player_id
+                         WHERE pa.match_id = :match_id AND (pa.team_id = :team_id OR pa.is_guest = 1)
+                         ORDER BY COALESCE(pa.is_guest, 0) ASC, p.name ASC";
+$battingStmt = $db->prepare($battingTeamPlayersSql);
+$battingStmt->execute(['match_id' => $matchId, 'team_id' => $battingTeamId]);
+$battingTeamPlayers = $battingStmt->fetchAll();
+
+// Get bowling team players (including guests)
+$bowlingTeamPlayersSql = "SELECT DISTINCT p.player_id, p.name, p.batting_hand, p.bowling_style, COALESCE(pa.is_guest, 0) as is_guest
+                         FROM players p
+                         INNER JOIN player_appearances pa ON p.player_id = pa.player_id
+                         WHERE pa.match_id = :match_id AND (pa.team_id = :team_id OR pa.is_guest = 1)
+                         ORDER BY COALESCE(pa.is_guest, 0) ASC, p.name ASC";
+$bowlingStmt = $db->prepare($bowlingTeamPlayersSql);
+$bowlingStmt->execute(['match_id' => $matchId, 'team_id' => $bowlingTeamId]);
+$bowlingTeamPlayers = $bowlingStmt->fetchAll();
+
+// For backward compatibility, also set team1Players and team2Players
+$team1Players = ($battingTeamId == $match['team1_id']) ? $battingTeamPlayers : $bowlingTeamPlayers;
+$team2Players = ($battingTeamId == $match['team1_id']) ? $bowlingTeamPlayers : $battingTeamPlayers;
+
+// Get current match state
+$eventModel = new Event();
+$events = $eventModel->getByMatch($matchId);
+
+// Get dismissed players for current innings (to exclude from new batsman dropdown)
+$dismissedPlayerIds = [];
+$currentStrikerId = null;
+$currentNonStrikerId = null;
+$currentBowlerId = null;
+
+// Run stats calculator to ensure DB is up to date
+require_once __DIR__ . '/../../classes/StatsCalculator.php';
+$statsCalculator = new StatsCalculator();
+$statsCalculator->updateMatchStats($matchId);
+
+// Get all events for current innings to find dismissed players and current batsmen
+$currentInningsEvents = [];
+$currentScore = 0;
+$currentWickets = 0;
+$legalBalls = 0;
+
+foreach ($events as $event) {
+    $payload = json_decode($event['payload_json'] ?? '{}', true);
+    $eventInnings = (int)($payload['innings'] ?? 1);
+    
+    if ($eventInnings == $currentInnings) {
+        $currentInningsEvents[] = $event;
+        
+        // Calculate Score & Wickets
+        $type = $payload['type'] ?? '';
+        $runs = (int)($payload['runs'] ?? 0);
+        $extraType = $payload['extra_type'] ?? '';
+        
+        if ($type === 'run') {
+            $currentScore += $runs;
+            $legalBalls++;
+        } elseif ($type === 'extra') {
+            $currentScore += $runs;
+            if ($extraType !== 'wide' && $extraType !== 'no-ball') {
+                $legalBalls++;
+            }
+        } elseif ($type === 'wicket') {
+            $currentWickets++;
+            $legalBalls++;
+        }
+        
+        // Track dismissed players (wickets)
+        if (($payload['type'] ?? '') === 'wicket' && isset($payload['striker_id'])) {
+            $dismissedPlayerIds[] = (int)$payload['striker_id'];
+        }
+        
+        // Track current batsmen and bowler (from last run/ball event)
+        if (($payload['type'] ?? '') === 'run' || ($payload['type'] ?? '') === 'extra' || ($payload['type'] ?? '') === 'wicket') {
+            if (isset($payload['striker_id'])) {
+                $currentStrikerId = (int)$payload['striker_id'];
+            }
+            if (isset($payload['non_striker_id'])) {
+                $currentNonStrikerId = (int)$payload['non_striker_id'];
+            }
+            if (isset($payload['bowler_id'])) {
+                $currentBowlerId = (int)$payload['bowler_id'];
+            }
+        }
+        
+        // Initialize UI with current selections
+        // This JavaScript code cannot be executed directly in PHP.
+        // It should be placed in a <script> block in the HTML part of the document.
+        // For the purpose of this edit, it's inserted as a comment to maintain PHP syntax.
+        /*
+        if (document.getElementById('striker').value) updateStriker();
+        if (document.getElementById('non-striker').value) updateNonStriker();
+        if (document.getElementById('bowler').value) updateBowler();
+        */
+        if (($payload['type'] ?? '') === 'wicket' && isset($payload['new_batsman_id'])) {
+            $currentStrikerId = (int)$payload['new_batsman_id'];
+        }
+        
+        // Track retired hurt replacement
+        if (($payload['type'] ?? '') === 'retired_hurt' && isset($payload['replacement_player_id'])) {
+            $currentStrikerId = (int)$payload['replacement_player_id'];
+        }
+    }
+}
+
+// Fetch detailed player stats for JS
+$db = Database::getInstance()->getConnection();
+$battingStats = $db->prepare("SELECT * FROM batting_stats WHERE match_id = ?");
+$battingStats->execute([$matchId]);
+$bowlingStats = $db->prepare("SELECT * FROM bowling_stats WHERE match_id = ?");
+$bowlingStats->execute([$matchId]);
+
+$jsPlayerStats = ['batsmen' => [], 'bowlers' => []];
+while ($row = $battingStats->fetch(PDO::FETCH_ASSOC)) {
+    $jsPlayerStats['batsmen'][$row['player_id']] = [
+        'runs' => (int)$row['runs'],
+        'balls' => (int)$row['balls'],
+        'fours' => (int)$row['fours'],
+        'sixes' => (int)$row['sixes']
+    ];
+}
+while ($row = $bowlingStats->fetch(PDO::FETCH_ASSOC)) {
+    $jsPlayerStats['bowlers'][$row['player_id']] = [
+        'runs' => (int)$row['runs'],
+        'balls' => (int)$row['balls'],
+        'wickets' => (int)$row['wickets'],
+        'overs' => (float)$row['overs']
+    ];
+}
+
+// Remove duplicates
+$dismissedPlayerIds = array_unique($dismissedPlayerIds);
+
+// Filter available players for new batsman (exclude dismissed and current batsmen)
+$availableBatsmen = [];
+foreach ($battingTeamPlayers as $player) {
+    $playerId = (int)$player['player_id'];
+    
+    // Skip if dismissed
+    if (in_array($playerId, $dismissedPlayerIds)) {
+        continue;
+    }
+    
+    // Skip if currently batting (striker or non-striker)
+    if ($playerId == $currentStrikerId || $playerId == $currentNonStrikerId) {
+        continue;
+    }
+    
+    $availableBatsmen[] = $player;
+}
+
+// Calculate actual team sizes (for local cricket format support)
+$battingTeamSize = count($battingTeamPlayers);
+$bowlingTeamSize = count($bowlingTeamPlayers);
+
+// Calculate maximum wickets (team size - 1, since at least 1 batsman must remain)
+$maxWickets = max(1, $battingTeamSize - 1);
+
+// Determine current batting team (already calculated above, but set team names here)
+$battingTeam = $battingTeamId == $match['team1_id'] ? $match['team1_name'] : $match['team2_name'];
+$bowlingTeam = $battingTeamId == $match['team1_id'] ? $match['team2_name'] : $match['team1_name'];
+
+// Calculate first innings total for target calculation using helper
+$firstInningsTotal = 0;
+if ($currentInnings == 2) {
+    $scoreData = calculateMatchScore($matchId, 1);
+    if ($scoreData && isset($scoreData['innings1'])) {
+        $firstInningsTotal = $scoreData['innings1']['runs'];
+    }
+}
+
+// Get success/error messages from session (after redirect from change-innings.php)
+$successMessage = '';
+$errorMessage = '';
+if (isset($_SESSION['success'])) {
+    $successMessage = $_SESSION['success'];
+    unset($_SESSION['success']);
+}
+if (isset($_SESSION['error'])) {
+    $errorMessage = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+
+// Calculate batting team ID for JavaScript config
+$battingTeamId = getBattingTeam($match, $currentInnings);
+
+// Debug: Log current innings value (only if match exists)
+if ($match) {
+    error_log('Score Page: match_id=' . $matchId . ', current_innings=' . ($match['current_innings'] ?? 'NULL') . ', state=' . ($match['state'] ?? 'NULL') . ', batting_team_size=' . $battingTeamSize . ', max_wickets=' . $maxWickets);
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <?php require_once __DIR__ . '/../../includes/cache-prevention-meta.php'; ?>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#dc3545">
+    <link rel="manifest" href="<?= getBaseUrl() ?>/manifest.json">
+    <title>Score Match - <?= e($match['team1_name']) ?> vs <?= e($match['team2_name']) ?> - CricApp</title>
+    <link rel="stylesheet" href="<?= assetUrl('css/admin-pwa.css') ?>">
+    <style>
+        /* Score Page - Mobile-First PWA Design */
+        :root {
+            --live-red: #dc3545;
+            --live-red-dark: #a71d2a;
+            
+            /* Map old variables to PWA tokens */
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --border-color: var(--border);
+            --text-secondary: var(--text-muted);
+            --text-primary: var(--text-main);
+            --bg-secondary: #f9fafb;
+            --success-color: var(--success);
+            --warning-color: var(--warning);
+            --primary-color: var(--primary);
+        }
+
+        body {
+            overflow: auto;
+        }
+
+        .app-main {
+            flex: 1;
+            overflow: visible;
+            padding: 0;
+            background: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            padding-top: var(--header-height);
+            min-height: 100vh;
+        }
+
+        .scoring-container {
+            flex: 1;
+            width: 100%;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sticky Scorecard */
+        .score-display {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, var(--live-red) 0%, var(--live-red-dark) 100%);
+            color: white;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .score-main-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .score-big {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .score-details {
+            text-align: right;
+        }
+
+        .score-overs {
+            font-size: 1rem;
+            opacity: 0.95;
+            font-weight: 600;
+        }
+
+        .score-rr {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .match-status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Main Scoring Area */
+        .scoring-dashboard {
+            flex: 1;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Unified Players Card */
+        .players-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .players-card-header {
+            background: var(--bg-body);
+            padding: 12px 16px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-row {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player-row:last-child {
+            border-bottom: none;
+        }
+
+        .player-indicator {
+            width: 4px;
+            height: 40px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .player-indicator.striker {
+            background: var(--success);
+        }
+
+        .player-indicator.non-striker {
+            background: var(--warning);
+        }
+
+        .player-indicator.bowler {
+            background: var(--primary);
+        }
+
+        .player-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .player-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .player-stat-val {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .player-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn-change {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Scoring Buttons */
+        .control-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 16px;
+        }
+
+        .control-section-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .btn-score {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.1s;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-score:active {
+            transform: scale(0.95);
+        }
+
+        .btn-0 { background: #6c757d; }
+        .btn-1 { background: #0d6efd; }
+        .btn-2 { background: #0b5ed7; }
+        .btn-3 { background: #0a58ca; }
+        .btn-4 { background: #ffc107; color: black; }
+        .btn-6 { background: #fd7e14; }
+
+        .extras-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-extra {
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .btn-wicket {
+            grid-column: span 2;
+            background: var(--live-red);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+
+        .btn-undo {
+            width: 100%;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            margin-top: 12px;
+        }
+
+        /* Tablet & Desktop */
+        @media (min-width: 768px) {
+            .scoring-dashboard {
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .score-big {
+                font-size: 2.5rem;
+            }
+
+            .control-grid {
+                gap: 16px;
+            }
+
+            .btn-score {
+                font-size: 2rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .scoring-container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+        }
+
+        /* Modals */
+        .wicket-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .wicket-modal.active {
+            display: flex;
+        }
+
+        .wicket-modal-content {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .wicket-types {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .wicket-type-btn {
+            padding: 16px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .wicket-type-btn:hover {
+            background: var(--bg-body);
+            border-color: var(--primary);
+        }
+
+        .wicket-type-btn:active {
+            transform: scale(0.98);
+        }
+
+        .wicket-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        /* Over Notification */
+        .over-notification {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1500;
+            min-width: 300px;
+        }
+
+        .over-notification.active {
+            display: block;
+            animation: slideInBounce 0.5s ease-out;
+        }
+
+        @keyframes slideInBounce {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(1.05);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Undo Button */
+        .undo-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--danger);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            z-index: 800;
+            transition: all 0.2s;
+        }
+
+        .undo-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .undo-btn:not(:disabled):hover {
+            transform: scale(1.1);
+        }
+
+        .undo-btn:not(:disabled):active {
+            transform: scale(0.95);
+        }
+
+        /* Mobile Sidebar Overlay */
+        .mobile-sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        /* Panel Info */
+        .panel-info {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 16px;
+        }
+
+        .info-header {
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .info-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .this-over-balls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ball-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .ball-circle.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .over-ball-compact {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .over-ball-compact.filled {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .ball-badge-compact {
+            min-width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0 6px;
+        }
+
+        .ball-0 { background: #6c757d; color: white; }
+        .ball-1 { background: #0d6efd; color: white; }
+        .ball-2 { background: #0b5ed7; color: white; }
+        .ball-3 { background: #0a58ca; color: white; }
+        .ball-4 { background: #ffc107; color: black; }
+        .ball-6 { background: #fd7e14; color: white; }
+        .ball-w { background: var(--danger); color: white; }
+        .ball-wb { background: #dc3545; color: white; }
+        .ball-nb { background: #fd7e14; color: white; }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <?php renderAdminSidebar('matches'); ?>
+
+        <header class="app-header">
+            <button class="btn-icon" onclick="toggleSidebar()" aria-label="Menu" style="margin-right: 8px;">
+                ☰
+            </button>
+            <div class="header-title">Score Match - <?= e($match['team1_name']) ?> vs <?= e($match['team2_name']) ?></div>
+            <div class="header-actions">
+                <a href="<?= adminUrl('matches/flow.php?id=' . $matchId) ?>" class="btn-icon" aria-label="Flow">
+                    📋
+                </a>
+                <a href="<?= adminUrl('matches/view.php?id=' . $matchId) ?>" class="btn-icon" aria-label="Back">
+                    ←
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <?php if (!empty($successMessage)): ?>
+                <div class="card" style="background: #d4edda; border-color: #c3e6cb; margin-bottom: var(--spacing-md); flex-shrink: 0;">
+                    <div style="color: #155724; padding: var(--spacing-md);">
+                        <strong>✓ Success:</strong> <?= htmlspecialchars($successMessage) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($errorMessage)): ?>
+                <div class="card" style="background: #f8d7da; border-color: #f5c6cb; margin-bottom: var(--spacing-md); flex-shrink: 0;">
+                    <div style="color: #721c24; padding: var(--spacing-md);">
+                        <strong>✗ Error:</strong> <?= htmlspecialchars($errorMessage) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <div class="scoring-container">
+                <div class="scoring-dashboard">
+                    
+                    <!-- 1. Header Area -->
+                    <div class="score-display">
+                        <div class="score-main-info">
+                            <div class="score-big" id="current-score">0/0</div>
+                            <div class="score-details">
+                                <div class="score-overs" id="current-overs">0.0 Overs</div>
+                                <div class="score-rr">CRR: <span id="run-rate">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="match-status-bar">
+                            <span><?= e($battingTeam) ?> vs <?= e($bowlingTeam) ?></span>
+                            <?php if ($currentInnings == 2 && $firstInningsTotal > 0): ?>
+                                <span>Target: <?= $firstInningsTotal + 1 ?></span>
+                                <span>Req RR: <span id="required-rr">0.00</span></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- 2. Players Card - Unified Design -->
+                    <div class="players-card">
+                        <div class="players-card-header">
+                            <span>Players</span>
+                            <button class="btn-change" onclick="document.getElementById('player-selects').style.display = document.getElementById('player-selects').style.display === 'none' ? 'block' : 'none'">
+                                Change
+                            </button>
+                        </div>
+
+                        <!-- Player Selection Dropdowns (Hidden by default) -->
+                        <div id="player-selects" style="display: none; padding: 12px; background: var(--bg-body); border-bottom: 1px solid var(--border);">
+                            <div style="margin-bottom: 8px;">
+                                <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Striker</label>
+                                <select id="striker" onchange="updateStriker()" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+                                    <option value="">Select...</option>
+                                    <?php foreach ($battingTeamPlayers as $player): ?>
+                                        <option value="<?= $player['player_id'] ?>" <?= ($currentStrikerId == $player['player_id']) ? 'selected' : '' ?>><?= e($player['name']) ?><?php if ($player['is_guest']): ?> 🌟<?php endif; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Non-Striker</label>
+                                <select id="non-striker" onchange="updateNonStriker()" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+                                    <option value="">Select...</option>
+                                    <?php foreach ($battingTeamPlayers as $player): ?>
+                                        <option value="<?= $player['player_id'] ?>" <?= ($currentNonStrikerId == $player['player_id']) ? 'selected' : '' ?>><?= e($player['name']) ?><?php if ($player['is_guest']): ?> 🌟<?php endif; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px;">Bowler</label>
+                                <select id="bowler" onchange="updateBowler()" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+                                    <option value="">Select...</option>
+                                    <?php foreach ($bowlingTeamPlayers as $player): ?>
+                                        <option value="<?= $player['player_id'] ?>" <?= ($currentBowlerId == $player['player_id']) ? 'selected' : '' ?>><?= e($player['name']) ?><?php if ($player['is_guest']): ?> 🌟<?php endif; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Striker -->
+                        <div class="player-row" id="striker-compact">
+                            <div class="player-indicator striker"></div>
+                            <div class="player-info">
+                                <div class="player-label">Striker 🏏</div>
+                                <div class="player-name" id="striker-name-compact">Select Player</div>
+                                <div class="player-stats" id="striker-stats-compact">
+                                    <span><span class="player-stat-val" id="striker-runs-compact">0</span> Runs</span>
+                                    <span><span class="player-stat-val" id="striker-balls-compact">0</span> Balls</span>
+                                    <span>SR: <span class="player-stat-val" id="striker-sr-compact">0.0</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Non-Striker -->
+                        <div class="player-row" id="non-striker-compact">
+                            <div class="player-indicator non-striker"></div>
+                            <div class="player-info">
+                                <div class="player-label">Non-Striker</div>
+                                <div class="player-name" id="non-striker-name-compact">Select Player</div>
+                                <div class="player-stats" id="non-striker-stats-compact">
+                                    <span><span class="player-stat-val" id="non-striker-runs-compact">0</span> Runs</span>
+                                    <span><span class="player-stat-val" id="non-striker-balls-compact">0</span> Balls</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bowler -->
+                        <div class="player-row" id="bowler-compact">
+                            <div class="player-indicator bowler"></div>
+                            <div class="player-info">
+                                <div class="player-label">Bowler 🎾</div>
+                                <div class="player-name" id="bowler-name-compact">Select Player</div>
+                                <div class="player-stats" id="bowler-stats-compact">
+                                    <span><span class="player-stat-val" id="bowler-overs-compact">0.0</span> Ov</span>
+                                    <span><span class="player-stat-val" id="bowler-runs-compact">0</span> Runs</span>
+                                    <span><span class="player-stat-val" id="bowler-wickets-compact">0</span> Wkts</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Current Over Summary -->
+                    <div class="card" style="margin-bottom: var(--spacing-md); background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd;">
+                        <div style="padding: 12px;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: #0369a1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Current Over</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #0c4a6e;" id="current-over-runs">0</div>
+                                    <div style="font-size: 0.7rem; color: #0369a1;">Runs</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #0c4a6e;" id="current-over-balls">0</div>
+                                    <div style="font-size: 0.7rem; color: #0369a1;">Balls</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #0c4a6e;" id="current-over-extras">0</div>
+                                    <div style="font-size: 0.7rem; color: #0369a1;">Extras</div>
+                                </div>
+                            </div>
+                            <div id="current-over-balls-display" style="display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; min-height: 24px;">
+                                <!-- Ball badges will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Scoring Controls -->
+                    <div id="overs-list" class="overs-list" style="margin-bottom: var(--spacing-md); font-size: 0.9rem; color: var(--text-secondary);"></div>
+<div class="control-section">
+                        <div class="control-section-title">Record Runs</div>
+                        <div class="control-grid">
+                            <button class="btn-score btn-0" onclick="recordRun(0)">0</button>
+                            <button class="btn-score btn-1" onclick="recordRun(1)">1</button>
+                            <button class="btn-score btn-2" onclick="recordRun(2)">2</button>
+                            <button class="btn-score btn-3" onclick="recordRun(3)">3</button>
+                            <button class="btn-score btn-4" onclick="recordRun(4)">4</button>
+                            <button class="btn-score btn-6" onclick="recordRun(6)">6</button>
+                        </div>
+
+                        <div class="control-section-title" style="margin-top: 16px;">Extras & Wicket</div>
+                        <div class="extras-grid">
+                            <button class="btn-extra" onclick="recordExtra('wide')">Wide</button>
+                            <button class="btn-extra" onclick="recordExtra('no-ball')">No Ball</button>
+                            <button class="btn-extra" onclick="recordExtra('bye')">Bye</button>
+                            <button class="btn-extra" onclick="recordExtra('leg-bye')">Leg Bye</button>
+                            
+                            <button class="btn-wicket" onclick="showWicketModal()">OUT / WICKET</button>
+                        </div>
+                        
+                        <button id="undo-btn" class="btn-undo" onclick="undoLastBall()" disabled>Undo Last Ball</button>
+
+                        <?php if ($currentInnings == 1): ?>
+                            <a href="<?= adminUrl('matches/change-innings.php?match_id=' . $matchId . '&current_innings=1') ?>" 
+                               class="btn-undo" 
+                               style="text-align: center; text-decoration: none; display: block; background: var(--primary);"
+                               onclick="return confirm('End Innings?');">
+                                End Innings ⏭️
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- 4. Info Panel (Right) -->
+                    <div class="panel-info">
+                        <div class="info-header">This Over</div>
+                        <div class="info-content">
+                            <div class="this-over-balls" id="current-over-balls-compact">
+                                <!-- JS will populate this -->
+                                <div class="ball-circle"></div>
+                                <div class="ball-circle"></div>
+                                <div class="ball-circle"></div>
+                                <div class="ball-circle"></div>
+                                <div class="ball-circle"></div>
+                                <div class="ball-circle"></div>
+                            </div>
+
+                            <div class="info-header" style="margin: 0 -1rem 1rem -1rem; padding-left: 1rem;">Recent Balls</div>
+                            <div id="recent-balls-compact" class="this-over-balls" style="justify-content: flex-start; gap: 4px; flex-wrap: wrap;">
+                                <!-- JS will populate this -->
+                                <div style="color: var(--text-secondary); font-size: 0.75rem;">No balls yet</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="mobile-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- Wicket Modal -->
+    <div class="wicket-modal" id="wicket-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Select Dismissal Type</h2>
+            <div class="wicket-types">
+                <button class="wicket-type-btn" onclick="recordWicketType('bowled')">Bowled</button>
+                <button class="wicket-type-btn" onclick="recordWicketType('caught')">Caught</button>
+                <button class="wicket-type-btn" onclick="recordWicketType('lbw')">LBW</button>
+                <button class="wicket-type-btn" onclick="recordWicketType('stumped')">Stumped</button>
+                <button class="wicket-type-btn" onclick="recordWicketType('hit_wicket')">Hit Wicket</button>
+                <button class="btn-wicket" onclick="showRunOutSelection()" style="background: #fd7e14;">Run Out</button>
+            </div>
+            <div style="margin-top: var(--spacing-lg);">
+                <button class="btn btn-secondary btn-lg" onclick="closeWicketModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fielder Selection Modal -->
+    <div class="wicket-modal" id="fielder-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Who took the catch?</h2>
+            <input type="hidden" id="pending-dismissal-type" value="">
+            <div style="margin-bottom: var(--spacing-md);">
+                <select id="fielder-select" class="form-select" style="width: 100%; padding: var(--spacing-md); font-size: 1.125rem;">
+                    <option value="">Select Fielder...</option>
+                    <?php foreach ($bowlingTeamPlayers as $player): ?>
+                        <option value="<?= $player['player_id'] ?>"><?= e($player['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                <button class="btn btn-secondary" onclick="closeFielderModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmFielder()" style="flex: 1;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Run Out Selection Modal -->
+    <div class="wicket-modal" id="run-out-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Who is Run Out?</h2>
+            <div class="wicket-grid">
+                <button class="btn-wicket" onclick="recordRunOut('striker')">Striker</button>
+                <button class="btn-wicket" onclick="recordRunOut('non_striker')">Non-Striker</button>
+            </div>
+            <div style="margin-top: var(--spacing-lg);">
+                <button class="btn btn-secondary btn-lg" onclick="closeRunOutModal()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start 2nd Innings Modal -->
+    <div class="wicket-modal" id="start-innings-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Start 2nd Innings?</h2>
+            <p style="margin-bottom: var(--spacing-md);">
+                Are you sure you want to start the 2nd innings?
+                <br><br>
+                <strong>Warning:</strong> You will NOT be able to undo the last ball of the 1st innings after this action.
+            </p>
+            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                <button class="btn btn-secondary" onclick="closeStartInningsModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmStartInnings()" style="flex: 1;">Start 2nd Innings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extra Runs Modal (for Wide/No-Ball) -->
+    <div class="wicket-modal" id="extra-runs-modal">
+        <div class="wicket-modal-content">
+            <h2 id="extra-runs-modal-title" style="margin-bottom: var(--spacing-md);">Wide - Additional Runs?</h2>
+            <input type="hidden" id="extra-runs-type" value="">
+            <div style="margin-bottom: var(--spacing-md);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Additional Runs (0, 1, 2, 3, 4, or 6):</label>
+                <select id="extra-runs-amount" class="form-select" style="width: 100%; padding: var(--spacing-md); font-size: 1.125rem;">
+                    <option value="1">1 (Base run only, no additional)</option>
+                    <option value="2">2 (1 base + 1 additional)</option>
+                    <option value="3">3 (1 base + 2 additional)</option>
+                    <option value="4">4 (1 base + 3 additional)</option>
+                    <option value="5">5 (1 base + 4 additional)</option>
+                    <option value="7">7 (1 base + 6 additional)</option>
+                </select>
+                <small style="display: block; margin-top: var(--spacing-xs); color: var(--text-secondary);">
+                    Total runs = 1 (base) + additional runs
+                </small>
+            </div>
+            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                <button class="btn btn-secondary" onclick="closeExtraRunsModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="recordExtraWithRuns()" style="flex: 1;">Record</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Batsman Modal (after wicket) -->
+    <div class="wicket-modal" id="new-batsman-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Select New Batsman</h2>
+            <div style="margin-bottom: var(--spacing-md);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">New Batsman:</label>
+                <select id="new-batsman-select" class="form-select" style="width: 100%; padding: var(--spacing-md); font-size: 1.125rem;">
+                    <option value="">Select...</option>
+                    <?php if (!empty($availableBatsmen)): ?>
+                        <?php foreach ($availableBatsmen as $player): ?>
+                            <option value="<?= $player['player_id'] ?>"><?= e($player['name']) ?></option>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <!-- Fallback: Show all batting team players if available batsmen list is empty (shouldn't happen normally) -->
+                        <?php foreach ($battingTeamPlayers as $player): ?>
+                            <option value="<?= $player['player_id'] ?>"><?= e($player['name']) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+                <small style="display: block; margin-top: var(--spacing-xs); color: var(--text-secondary);">
+                    <?php if (count($availableBatsmen) < count($battingTeamPlayers)): ?>
+                        Showing available players only (excludes dismissed and current batsmen)
+                    <?php else: ?>
+                        New batsman will take the strike position
+                    <?php endif; ?>
+                </small>
+            </div>
+            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                <button class="btn btn-secondary" onclick="closeNewBatsmanModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmNewBatsman()" style="flex: 1;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retired Hurt Modal -->
+    <div class="wicket-modal" id="retired-hurt-modal">
+        <div class="wicket-modal-content">
+            <h2 style="margin-bottom: var(--spacing-md);">Retired Hurt</h2>
+            <div style="margin-bottom: var(--spacing-md);">
+                <p style="margin-bottom: var(--spacing-md);">Player can return to bat later. Select replacement batsman:</p>
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Replacement Batsman:</label>
+                <select id="retired-hurt-replacement" class="form-select" style="width: 100%; padding: var(--spacing-md); font-size: 1.125rem;">
+                    <option value="">Select...</option>
+                    <?php foreach ($battingTeamPlayers as $player): ?>
+                        <option value="<?= $player['player_id'] ?>"><?= e($player['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
+                <button class="btn btn-secondary" onclick="closeRetiredHurtModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmRetiredHurt()" style="flex: 1;">Record Retired Hurt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Over Completion Notification -->
+    <div class="over-notification" id="over-notification">
+        <div style="font-size: 2rem; margin-bottom: var(--spacing-sm);">🎉</div>
+        <div style="font-size: 1.5rem; font-weight: 700;">Over Complete!</div>
+        <div style="font-size: 1rem; margin-top: var(--spacing-sm);" id="over-notification-text"></div>
+    </div>
+
+    <!-- Undo Button -->
+    <button class="undo-btn" id="undo-btn" onclick="undoLastBall()" title="Undo Last Ball" disabled>
+        ↶
+    </button>
+
+    <!-- Start 2nd Innings Button (Floating) -->
+    <button id="start-2nd-innings-btn" onclick="showStartInningsModal()" style="
+        display: none;
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        z-index: 900;
+        animation: pulse 2s infinite;
+    ">
+        Start 2nd Innings →
+    </button>
+
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+    </style>
+
+    <script>
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.app-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (window.innerWidth < 1024) {
+                sidebar.classList.toggle('open');
+                if (overlay) {
+                    overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+                }
+            }
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.querySelector('.app-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('open');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+        
+        // Close sidebar on window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                closeSidebar();
+            }
+        });
+        
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                // Get base path from PHP
+                const basePath = '<?= getBasePath() ?>';
+                const swPath = basePath ? basePath + '/sw.js' : '/sw.js';
+                
+                navigator.serviceWorker.register(swPath, {
+                    scope: basePath ? basePath + '/' : '/'
+                })
+                    .then(function(reg) {
+                        console.log('Service Worker registered successfully:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        console.error('Service Worker registration failed:', err);
+                        console.error('Attempted path:', swPath);
+                        console.error('Base path:', basePath);
+                    });
+            });
+        }
+        
+        // Helper functions (mirror PHP helpers for consistency)
+        function isLegalBall(type, extraType) {
+            if (type === 'extra') {
+                return !(extraType === 'wide' || extraType === 'no-ball');
+            }
+            return true;
+        }
+        
+        function shouldRotateStrike(runs, isNoBall) {
+            return (runs % 2 === 1);
+        }
+        
+        /**
+         * Check if innings is complete
+         * @param {number} wickets - Current wicket count
+         * @param {number} completedOvers - Number of completed overs (full overs)
+         * @param {number} currentBalls - Current balls in the over (0-5)
+         * @param {number} maxOvers - Maximum overs allowed
+         * @returns {boolean} True if innings is complete
+         */
+        function isInningsComplete(wickets, completedOvers, currentBalls, maxOvers) {
+            // Check wickets - use dynamic maxWickets based on team size
+            // Use fallback if maxWickets is not defined
+            const teamMaxWickets = typeof maxWickets !== 'undefined' ? maxWickets : 10;
+            if (wickets >= teamMaxWickets) return true;
+            
+            // Calculate total overs (including partial over)
+            // For example: 2 overs + 0 balls = 2.0 overs, which is >= 2.0 maxOvers
+            const totalOvers = completedOvers + (currentBalls / 6);
+            
+            // Innings complete when total overs >= max overs
+            // Use >= to handle exact match (e.g., 2.0 >= 2.0)
+            if (totalOvers >= maxOvers) return true;
+            
+            // CRITICAL FIX: For innings 2, also check if target is reached
+            // If batting team reaches or exceeds target, innings is complete (match won)
+            if (currentInnings === 2 && firstInningsTotal > 0) {
+                const target = firstInningsTotal + 1;
+                if (currentScore >= target) {
+                    return true; // Target reached - innings complete!
+                }
+            }
+            
+            return false;
+        }
+        
+        function calculateOvers(balls) {
+            const completedOvers = Math.floor(balls / 6);
+            const remainingBalls = balls % 6;
+            return completedOvers + (remainingBalls / 10);
+        }
+        
+        function calculateRunRate(runs, balls) {
+            if (balls === 0) return 0.0;
+            return (runs / balls) * 6;
+        }
+        
+        function calculateTarget(firstInningsTotal) {
+            return firstInningsTotal + 1;
+        }
+        
+        function calculateRequiredRunRate(target, currentScore, remainingOvers) {
+            const remainingRuns = target - currentScore;
+            if (remainingRuns <= 0 || remainingOvers <= 0) {
+                return 0.0;
+            }
+            return remainingRuns / remainingOvers;
+        }
+        
+        const matchId = <?= $matchId ?>;
+        const currentInnings = <?= $currentInnings ?>;
+        const maxOvers = <?= $match['overs_per_innings'] ?>;
+        const firstInningsTotal = <?= $firstInningsTotal ?>;
+        const battingTeamSize = <?= $battingTeamSize ?>;
+        const maxWickets = <?= $maxWickets ?>; // Dynamic based on team size
+        
+        let currentScore = <?= $currentScore ?>;
+        let currentWickets = <?= $currentWickets ?>;
+        let currentBalls = <?= $legalBalls % 6 ?>;
+        let currentOvers = <?= floor($legalBalls / 6) ?>;
+        let clientSeq = 0;
+        let serverSeq = 0;
+        let lastKnownSeq = 0;
+        let eventHistory = []; // For undo functionality
+        
+        // Player stats tracking
+        let playerStats = <?= json_encode($jsPlayerStats) ?>;
+        
+        let currentStrikerId = <?= json_encode($currentStrikerId) ?>;
+        let currentNonStrikerId = <?= json_encode($currentNonStrikerId) ?>;
+        let currentBowlerId = <?= json_encode($currentBowlerId) ?>;
+        let currentOverBalls = [];
+        let currentOverRuns = 0;  // Track runs in current over
+        let currentOverExtras = 0;  // Track extras in current over
+        let currentOverLegalBalls = 0;  // Track legal balls in current over
+        let isStrikerOnStrike = true;
+        let currentBowlerBalls = 0; // Track legal balls bowled by current bowler (for mandatory change after 1 over)
+        let lastOverBowlerId = null; // Track who bowled the last over
+        let userChangedBowlerAfterOver = false; // Track if user manually changed bowler after over completion
+
+        function updateStriker() {
+            const select = document.getElementById('striker');
+            const playerId = select.value;
+            const playerName = select.options[select.selectedIndex].text;
+            
+            if (playerId) {
+                currentStrikerId = parseInt(playerId);
+                // Update compact view
+                const compactName = document.getElementById('striker-name-compact');
+                const compactCard = document.getElementById('striker-compact');
+                if (compactName) compactName.textContent = playerName;
+                if (compactCard) compactCard.classList.add('active');
+                
+                if (!playerStats.batsmen[playerId]) {
+                    playerStats.batsmen[playerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                }
+                updateStrikerStats();
+            } else {
+                currentStrikerId = null;
+                const compactName = document.getElementById('striker-name-compact');
+                const compactCard = document.getElementById('striker-compact');
+                if (compactName) compactName.textContent = 'Not Selected';
+                if (compactCard) compactCard.classList.remove('active');
+                const compactStats = document.getElementById('striker-stats-compact');
+                if (compactStats) compactStats.style.display = 'none';
+            }
+        }
+
+        function updateNonStriker() {
+            const select = document.getElementById('non-striker');
+            const playerId = select.value;
+            const playerName = select.options[select.selectedIndex].text;
+            
+            if (playerId) {
+                currentNonStrikerId = parseInt(playerId);
+                // Update compact view
+                const compactName = document.getElementById('non-striker-name-compact');
+                const compactCard = document.getElementById('non-striker-compact');
+                if (compactName) compactName.textContent = playerName;
+                if (compactCard) compactCard.classList.add('active');
+                
+                if (!playerStats.batsmen[playerId]) {
+                    playerStats.batsmen[playerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                }
+                updateNonStrikerStats();
+            } else {
+                currentNonStrikerId = null;
+                const compactName = document.getElementById('non-striker-name-compact');
+                const compactCard = document.getElementById('non-striker-compact');
+                if (compactName) compactName.textContent = 'Not Selected';
+                if (compactCard) compactCard.classList.remove('active');
+                const compactStats = document.getElementById('non-striker-stats-compact');
+                if (compactStats) compactStats.style.display = 'none';
+            }
+        }
+
+        function updateBowler() {
+            const select = document.getElementById('bowler');
+            const playerId = select.value;
+            const playerName = select.options[select.selectedIndex].text;
+            
+            if (playerId) {
+                // Reset bowler ball count when changing bowler
+                if (currentBowlerId !== parseInt(playerId)) {
+                    currentBowlerBalls = 0;
+                    // Mark that user manually changed bowler (prevents auto-refresh from overwriting)
+                    userChangedBowlerAfterOver = true;
+                }
+                currentBowlerId = parseInt(playerId);
+                // Update compact view
+                const compactName = document.getElementById('bowler-name-compact');
+                const compactCard = document.getElementById('bowler-compact');
+                if (compactName) compactName.textContent = playerName;
+                if (compactCard) compactCard.classList.add('active');
+                
+                if (!playerStats.bowlers[playerId]) {
+                    playerStats.bowlers[playerId] = { runs: 0, balls: 0, wickets: 0, overs: 0 };
+                }
+                updateBowlerStats();
+                updateBowlerSelectState(); // Update disabled state
+            } else {
+                currentBowlerId = null;
+                currentBowlerBalls = 0;
+                const compactName = document.getElementById('bowler-name-compact');
+                const compactCard = document.getElementById('bowler-compact');
+                if (compactName) compactName.textContent = 'Not Selected';
+                if (compactCard) compactCard.classList.remove('active');
+                const compactStats = document.getElementById('bowler-stats-compact');
+                if (compactStats) compactStats.style.display = 'none';
+                updateBowlerSelectState();
+            }
+        }
+        
+        /**
+         * Update bowler select disabled state based on current bowler's ball count
+         * Bowler can only be changed after completing 1 over (6 legal balls)
+         */
+        function updateBowlerSelectState() {
+            const bowlerSelect = document.getElementById('bowler');
+            if (!bowlerSelect) return;
+            
+            // Allow bowler change at any time (but warn if mid-over? No, user requested to allow it)
+            bowlerSelect.disabled = false;
+            bowlerSelect.title = '';
+            bowlerSelect.style.opacity = '1';
+            bowlerSelect.style.cursor = 'pointer';
+        }
+
+        function updateStrikerStats() {
+            if (!currentStrikerId || !playerStats.batsmen[currentStrikerId]) return;
+            
+            const stats = playerStats.batsmen[currentStrikerId];
+            const sr = stats.balls > 0 ? (stats.runs / stats.balls * 100).toFixed(2) : '0.00';
+            
+            // Update compact view
+            const compactRuns = document.getElementById('striker-runs-compact');
+            const compactBalls = document.getElementById('striker-balls-compact');
+            const compactSr = document.getElementById('striker-sr-compact');
+            const compactStats = document.getElementById('striker-stats-compact');
+            
+            if (compactRuns) compactRuns.textContent = stats.runs;
+            if (compactBalls) compactBalls.textContent = stats.balls;
+            if (compactSr) compactSr.textContent = sr;
+            if (compactStats) compactStats.style.display = 'flex';
+        }
+
+        function updateNonStrikerStats() {
+            if (!currentNonStrikerId || !playerStats.batsmen[currentNonStrikerId]) return;
+            
+            const stats = playerStats.batsmen[currentNonStrikerId];
+            const sr = stats.balls > 0 ? (stats.runs / stats.balls * 100).toFixed(2) : '0.00';
+            
+            // Update compact view
+            const compactRuns = document.getElementById('non-striker-runs-compact');
+            const compactBalls = document.getElementById('non-striker-balls-compact');
+            const compactSr = document.getElementById('non-striker-sr-compact');
+            const compactStats = document.getElementById('non-striker-stats-compact');
+            
+            if (compactRuns) compactRuns.textContent = stats.runs;
+            if (compactBalls) compactBalls.textContent = stats.balls;
+            if (compactSr) compactSr.textContent = sr;
+            if (compactStats) compactStats.style.display = 'flex';
+        }
+
+        function updateBowlerStats() {
+            if (!currentBowlerId || !playerStats.bowlers[currentBowlerId]) return;
+            
+            const stats = playerStats.bowlers[currentBowlerId];
+            const overs = Math.floor(stats.balls / 6);
+            const balls = stats.balls % 6;
+            const oversStr = overs + '.' + balls;
+            
+            // Update compact view
+            const compactOvers = document.getElementById('bowler-overs-compact');
+            const compactRuns = document.getElementById('bowler-runs-compact');
+            const compactWickets = document.getElementById('bowler-wickets-compact');
+            const compactStats = document.getElementById('bowler-stats-compact');
+            
+            if (compactOvers) compactOvers.textContent = oversStr;
+            if (compactRuns) compactRuns.textContent = stats.runs;
+            if (compactWickets) compactWickets.textContent = stats.wickets;
+            if (compactStats) compactStats.style.display = 'flex';
+        }
+
+        function isLegalBall(type, extraType) {
+            if (type === 'extra') {
+                // Wide and no-ball don't count as legal deliveries
+                return !(extraType === 'wide' || extraType === 'no-ball');
+            }
+            // Runs and wickets count as legal balls
+            return true;
+        }
+
+        function shouldRotateStrike(runs, isNoBall = false) {
+            // Odd runs (1, 3) rotate strike, even runs (0, 2, 4, 6) don't
+            return (runs % 2 === 1);
+        }
+
+        function recordRun(runs) {
+            // Prevent scoring if innings is complete
+            if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                alert('Innings is complete! Please start 2nd innings.');
+                return;
+            }
+            
+            recordBall({
+                type: 'run',
+                runs: runs
+            });
+        }
+
+        function recordExtra(type) {
+            // Prevent scoring if innings is complete
+            if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                alert('Innings is complete! Please start 2nd innings.');
+                return;
+            }
+            
+            // Wide and no-ball can have additional runs (1 run + 0,1,2,3,4,6)
+            if (type === 'wide' || type === 'no-ball') {
+                showExtraRunsModal(type);
+            } else {
+                // Bye and leg-bye default to 1 run (can be changed if needed)
+                recordBall({
+                    type: 'extra',
+                    extra_type: type,
+                    runs: 1
+                });
+            }
+        }
+
+        function showExtraRunsModal(extraType) {
+            const modal = document.getElementById('extra-runs-modal');
+            const modalTitle = document.getElementById('extra-runs-modal-title');
+            const extraTypeInput = document.getElementById('extra-runs-type');
+            
+            modalTitle.textContent = extraType === 'wide' ? 'Wide - Additional Runs?' : 'No Ball - Additional Runs?';
+            extraTypeInput.value = extraType;
+            
+            // Reset runs to 1 (base run for wide/no-ball)
+            document.getElementById('extra-runs-amount').value = '1';
+            
+            modal.classList.add('active');
+        }
+
+        function closeExtraRunsModal() {
+            document.getElementById('extra-runs-modal').classList.remove('active');
+        }
+
+        function recordExtraWithRuns() {
+            const extraType = document.getElementById('extra-runs-type').value;
+            const runs = parseInt(document.getElementById('extra-runs-amount').value) || 1;
+            
+            closeExtraRunsModal();
+            
+            recordBall({
+                type: 'extra',
+                extra_type: extraType,
+                runs: runs
+            });
+        }
+
+        function showWicketModal() {
+            // Prevent scoring if innings is complete
+            if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                alert('Innings is complete! Please start 2nd innings.');
+                return;
+            }
+            
+            if (!currentStrikerId || !currentBowlerId) {
+                alert('Please select striker and bowler');
+                return;
+            }
+            document.getElementById('wicket-modal').classList.add('active');
+        }
+
+        function closeWicketModal() {
+            document.getElementById('wicket-modal').classList.remove('active');
+        }
+
+        let pendingWicketData = null;
+
+        function recordWicketType(dismissalType) {
+            closeWicketModal();
+            
+            // For caught and stumped, ask for fielder
+            if (dismissalType === 'caught' || dismissalType === 'stumped') {
+                document.getElementById('pending-dismissal-type').value = dismissalType;
+                document.getElementById('fielder-modal').classList.add('active');
+                
+                const title = dismissalType === 'caught' ? 'Who took the catch?' : 'Who did the stumping?';
+                document.querySelector('#fielder-modal h2').textContent = title;
+                
+                // Reset selection
+                document.getElementById('fielder-select').value = '';
+                return;
+            }
+            
+            // Handle run out separately if needed, but standard types go here
+            pendingWicketData = {
+                type: 'wicket',
+                dismissal_type: dismissalType
+            };
+            // Show new batsman selection modal
+            showNewBatsmanModal();
+        }
+
+        function closeFielderModal() {
+            document.getElementById('fielder-modal').classList.remove('active');
+        }
+
+        function confirmFielder() {
+            const fielderId = document.getElementById('fielder-select').value;
+            if (!fielderId) {
+                alert('Please select a fielder');
+                return;
+            }
+            
+            const dismissalType = document.getElementById('pending-dismissal-type').value;
+            closeFielderModal();
+            
+            pendingWicketData = {
+                type: 'wicket',
+                dismissal_type: dismissalType,
+                fielder_id: parseInt(fielderId)
+            };
+            
+            showNewBatsmanModal();
+        }
+
+        function showRunOutSelection() {
+            closeWicketModal();
+            document.getElementById('run-out-modal').classList.add('active');
+        }
+
+        function closeRunOutModal() {
+            document.getElementById('run-out-modal').classList.remove('active');
+            showWicketModal(); // Go back
+        }
+
+        function recordRunOut(who) {
+            closeRunOutModal();
+            
+            // For run out, we need to know who is out
+            // If Non-Striker is out, we flag it so recordBall can handle it
+            // We'll use a special property _runOutPlayer
+            
+            pendingWicketData = {
+                type: 'wicket',
+                dismissal_type: 'run out',
+                _runOutPlayer: who // 'striker' or 'non_striker'
+            };
+            
+            showNewBatsmanModal();
+        }
+
+        function showNewBatsmanModal() {
+            // Update dropdown with available players (excluding dismissed and current batsmen)
+            updateNewBatsmanDropdown();
+            
+            // Check if there are any available batsmen
+            const dropdown = document.getElementById('new-batsman-select');
+            const availableCount = dropdown.options.length - 1; // Exclude "Select..." option
+            
+            if (availableCount === 0) {
+                // No more batsmen available - last batsman continues alone
+                console.log('No more batsmen available - continuing with last batsman');
+                
+                // Store wicket data
+                const wicketData = pendingWicketData;
+                pendingWicketData = null;
+                
+                if (wicketData) {
+                    // Record wicket WITHOUT new batsman - the remaining batsman continues
+                    // The non-striker becomes the striker (or stays if they were already striker)
+                    recordBall(wicketData);
+                }
+                return;
+            }
+            
+            document.getElementById('new-batsman-modal').classList.add('active');
+            // Reset selection
+            document.getElementById('new-batsman-select').value = '';
+        }
+        
+        /**
+         * Update new batsman dropdown to show only available players
+         * Excludes dismissed players and current batsmen (striker/non-striker)
+         */
+        function updateNewBatsmanDropdown() {
+            const dropdown = document.getElementById('new-batsman-select');
+            if (!dropdown) return;
+            
+            // Get all batting team players from the striker dropdown (source of truth)
+            const strikerSelect = document.getElementById('striker');
+            if (!strikerSelect) return;
+            
+            const currentStrikerId = parseInt(strikerSelect.value) || null;
+            const nonStrikerSelect = document.getElementById('non-striker');
+            const currentNonStrikerId = parseInt(nonStrikerSelect?.value) || null;
+            
+            // Get dismissed players from event history (players who had wickets)
+            const dismissedPlayerIds = new Set();
+            eventHistory.forEach(event => {
+                if (event.type === 'wicket' && event.striker_id) {
+                    dismissedPlayerIds.add(event.striker_id);
+                }
+            });
+            
+            // Get all available options from striker dropdown
+            const allPlayers = Array.from(strikerSelect.options).map(opt => ({
+                value: opt.value,
+                text: opt.text,
+                playerId: parseInt(opt.value)
+            })).filter(opt => opt.value); // Exclude empty option
+            
+            // Clear dropdown (except first empty option)
+            dropdown.innerHTML = '<option value="">Select...</option>';
+            
+            // Add available players (exclude dismissed and current batsmen)
+            allPlayers.forEach(player => {
+                const playerId = player.playerId;
+                
+                // Skip if dismissed
+                if (dismissedPlayerIds.has(playerId)) {
+                    return;
+                }
+                
+                // Skip if currently batting
+                if (playerId === currentStrikerId || playerId === currentNonStrikerId) {
+                    return;
+                }
+                
+                // Add to dropdown
+                const option = document.createElement('option');
+                option.value = player.value;
+                option.textContent = player.text;
+                dropdown.appendChild(option);
+            });
+            
+            // Update help text
+            const helpText = dropdown.parentElement.querySelector('small');
+            if (helpText && dropdown.options.length - 1 < allPlayers.length) {
+                helpText.textContent = 'Showing available players only (excludes dismissed and current batsmen)';
+            } else if (helpText) {
+                helpText.textContent = 'New batsman will take the strike position';
+            }
+        }
+
+        function closeNewBatsmanModal() {
+            document.getElementById('new-batsman-modal').classList.remove('active');
+            pendingWicketData = null;
+        }
+
+        function confirmNewBatsman() {
+            const newBatsmanId = document.getElementById('new-batsman-select').value;
+            if (!newBatsmanId) {
+                alert('Please select a new batsman');
+                return;
+            }
+            
+            // Store wicket data BEFORE closing modal (which clears it)
+            const wicketData = pendingWicketData;
+            
+            // Close modal (this clears pendingWicketData)
+            closeNewBatsmanModal();
+            
+            // Record wicket with new batsman info
+            if (wicketData) {
+                wicketData.new_batsman_id = parseInt(newBatsmanId);
+                // Store new batsman ID to update after API success
+                wicketData._newBatsmanId = parseInt(newBatsmanId);
+                recordBall(wicketData);
+            } else {
+                alert('Error: Wicket data not found. Please try again.');
+            }
+        }
+
+        function showRetiredHurtModal() {
+            // Prevent scoring if innings is complete
+            if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                alert('Innings is complete! Please start 2nd innings.');
+                return;
+            }
+            
+            if (!currentStrikerId) {
+                alert('Please select striker');
+                return;
+            }
+            document.getElementById('retired-hurt-modal').classList.add('active');
+            document.getElementById('retired-hurt-replacement').value = '';
+        }
+
+        function closeRetiredHurtModal() {
+            document.getElementById('retired-hurt-modal').classList.remove('active');
+        }
+
+        function confirmRetiredHurt() {
+            const replacementId = document.getElementById('retired-hurt-replacement').value;
+            if (!replacementId) {
+                alert('Please select replacement batsman');
+                return;
+            }
+            
+            closeRetiredHurtModal();
+            
+            // Record retired hurt
+            recordBall({
+                type: 'retired_hurt',
+                retired_player_id: currentStrikerId,
+                replacement_player_id: parseInt(replacementId)
+            });
+            
+            // Update striker to replacement
+            const strikerSelect = document.getElementById('striker');
+            strikerSelect.value = replacementId;
+            updateStriker();
+        }
+
+        function recordWicket() {
+            if (!confirm('Record wicket?')) {
+                return;
+            }
+            showWicketModal();
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        /**
+         * Record a ball event (run, wicket, or extra)
+         * 
+         * Validates required fields (striker, bowler) before recording.
+         * Handles sequence conflicts by reloading match state.
+         * Updates score, wickets, overs, and player statistics.
+         * 
+         * @param {Object} data - Ball data {type, runs?, extra_type?, dismissal_type?}
+         */
+        function recordBall(data) {
+            const striker = document.getElementById('striker').value;
+            const nonStriker = document.getElementById('non-striker').value;
+            const bowler = document.getElementById('bowler').value;
+            
+            if (!striker || !bowler) {
+                alert('Please select striker and bowler');
+                return;
+            }
+
+            // ENFORCE BOWLER ROTATION RULE
+            // If it's the start of a new over (currentBalls === 0) and the selected bowler 
+            // is the same as the one who bowled the LAST over, block it.
+            if (currentBalls === 0 && lastOverBowlerId && String(bowler) === String(lastOverBowlerId)) {
+                alert('Bowler cannot bowl consecutive overs. Please select a different bowler.');
+                // Reset bowler selection to force user to choose
+                const bowlerSelect = document.getElementById('bowler');
+                bowlerSelect.value = '';
+                currentBowlerId = null;
+                currentBowlerBalls = 0;
+                // Update UI without triggering updateBowler
+                const compactName = document.getElementById('bowler-name-compact');
+                const compactCard = document.getElementById('bowler-compact');
+                if (compactName) compactName.textContent = 'Not Selected';
+                if (compactCard) compactCard.classList.remove('active');
+                const compactStats = document.getElementById('bowler-stats-compact');
+                if (compactStats) compactStats.style.display = 'none';
+                return;
+            }
+
+            // Store event for undo
+            const eventData = {
+                type: data.type,
+                runs: data.runs || 0,
+                striker_id: parseInt(striker),
+                bowler_id: parseInt(bowler),
+                extra_type: data.extra_type || null,
+                dismissal_type: data.dismissal_type || null,
+                fielder_id: data.fielder_id || null,
+                timestamp: Date.now()
+            };
+            eventHistory.push(eventData);
+
+            // Create event payload
+            const payload = {
+                type: data.type,
+                runs: data.runs || 0,
+                striker_id: parseInt(striker),
+                non_striker_id: nonStriker ? parseInt(nonStriker) : null,
+                bowler_id: parseInt(bowler),
+                extra_type: data.extra_type || null,
+                dismissal_type: data.dismissal_type || null,
+                fielder_id: data.fielder_id || null,
+                innings: currentInnings
+            };
+            
+            // Handle Run Out (Non-Striker)
+            // If Non-Striker is out, we SWAP the striker and non-striker IDs in the payload
+            // This ensures the backend assigns the wicket to the correct player (the one who is "striker" in the payload)
+            // Note: The ball faced count will technically go to the non-striker, which is a known limitation 
+            // but required for the wicket to be attributed correctly without backend schema changes.
+            if (data._runOutPlayer === 'non_striker') {
+                const temp = payload.striker_id;
+                payload.striker_id = payload.non_striker_id;
+                payload.non_striker_id = temp;
+                
+                // Also swap in event history for consistency if needed, but let's keep history accurate to who faced
+                // Actually, for undo to work, we might need to be careful. 
+                // Let's just swap payload.
+            }
+            
+            // Add new batsman ID for wickets
+            if (data.type === 'wicket' && data.new_batsman_id) {
+                payload.new_batsman_id = data.new_batsman_id;
+            }
+            
+            // Add retired hurt info
+            if (data.type === 'retired_hurt') {
+                payload.retired_player_id = data.retired_player_id;
+                payload.replacement_player_id = data.replacement_player_id;
+            }
+            
+            const event = {
+                event_uuid: generateUUID(),
+                client_id: 'web-scorer-' + Date.now(),
+                client_ts: new Date().toISOString(),
+                client_base_seq: serverSeq,
+                ball_index: currentBalls, // This will be updated by server for wide/no-ball
+                appearance_id: null,
+                payload_json: payload
+            };
+
+            // Send as batch (API expects batch format)
+            fetch('<?= apiUrl('events.php') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    match_id: matchId,
+                    client_base_seq: serverSeq,
+                    events: [event]
+                })
+            })
+            .then(response => {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return response.text().then(text => {
+                        console.error('Non-JSON response from events API:', text.substring(0, 500));
+                        throw new Error('Server returned HTML instead of JSON. Check server logs for PHP errors.');
+                    });
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    serverSeq = result.server_seq;
+                    clientSeq++;
+                    
+                    // Clear the manual bowler change flag after ball is recorded
+                    userChangedBowlerAfterOver = false;
+                    
+                    // Update stats
+                    updateStatsAfterBall(data, striker, bowler);
+                    
+                    // Update score display
+                    if (data.type === 'run') {
+                        currentScore += data.runs || 0;
+                        currentBalls++;
+                        
+                        // Update player stats
+                        if (playerStats.batsmen[striker]) {
+                            playerStats.batsmen[striker].runs += data.runs || 0;
+                            playerStats.batsmen[striker].balls++;
+                            if (data.runs === 4) playerStats.batsmen[striker].fours++;
+                            if (data.runs === 6) playerStats.batsmen[striker].sixes++;
+                        }
+                        if (playerStats.bowlers[bowler]) {
+                            playerStats.bowlers[bowler].runs += data.runs || 0;
+                            playerStats.bowlers[bowler].balls++;
+                        }
+                        
+                        // Track current over stats
+                        currentOverRuns += data.runs || 0;
+                        currentOverLegalBalls++;
+                        
+                        // Handle strike rotation using helper function
+                        // Odd runs (1, 3) rotate strike, even runs (0, 2, 4, 6) don't
+                        if (shouldRotateStrike(data.runs || 0, false)) {
+                            swapStrike();
+                        }
+                    } else if (data.type === 'wicket') {
+                        currentWickets++;
+                        const isLegalDelivery = true; // Wickets are always legal deliveries
+                        currentBalls++;
+                        
+                        if (playerStats.batsmen[striker]) {
+                            playerStats.batsmen[striker].balls++;
+                        }
+                        if (playerStats.bowlers[bowler]) {
+                            playerStats.bowlers[bowler].wickets++;
+                            playerStats.bowlers[bowler].balls++;
+                        }
+                        
+                        // Track current over stats
+                        currentOverLegalBalls++;
+                        
+                        // Add wicket to current over balls for display
+                        currentOverBalls.push('W');
+                        
+                        // Update striker to new batsman (if provided) - after API success
+                        if (data._newBatsmanId) {
+                            const strikerSelect = document.getElementById('striker');
+                            strikerSelect.value = data._newBatsmanId;
+                            updateStriker();
+                        } else {
+                            // No new batsman provided - last batsman scenario
+                            // The remaining batsman continues alone
+                            // If striker was out, non-striker becomes striker
+                            // If non-striker was out (run out), striker continues
+                            console.log('No new batsman - continuing with remaining batsman');
+                        }
+                    } else if (data.type === 'retired_hurt') {
+                        // Retired hurt doesn't count as wicket or ball
+                        // Just replace the batsman
+                        // No score/ball changes
+                    } else if (data.type === 'extra') {
+                        // Extras: wide, no-ball (1 run + additional runs 0,1,2,3,4,6), bye, leg-bye (1+ runs)
+                        const extraRuns = data.runs || 1;
+                        currentScore += extraRuns;
+                        if (playerStats.bowlers[bowler]) {
+                            playerStats.bowlers[bowler].runs += extraRuns;
+                        }
+                        
+                        // Track current over stats
+                        currentOverRuns += extraRuns;
+                        currentOverExtras += extraRuns;
+                        
+                        // Handle strike rotation for wide/no-ball with runs
+                        // If wide/no-ball has additional runs (2,3,4,5,7), rotate strike based on additional runs
+                        if ((data.extra_type === 'wide' || data.extra_type === 'no-ball') && extraRuns > 1) {
+                            const additionalRuns = extraRuns - 1; // Subtract base run
+                            if (shouldRotateStrike(additionalRuns, data.extra_type === 'no-ball')) {
+                                swapStrike();
+                            }
+                        }
+                        
+                        // Use helper function to check if ball is legal
+                        // Wide and no-ball don't count as legal deliveries (ball re-bowled)
+                        // Bye and leg-bye count as legal balls
+                        const isLegalDelivery = isLegalBall('extra', data.extra_type);
+                        if (isLegalDelivery) {
+                            // Bye and leg-bye count as balls
+                            currentBalls++;
+                            currentOverLegalBalls++;
+                            if (playerStats.bowlers[bowler]) {
+                                playerStats.bowlers[bowler].balls++;
+                            }
+                        }
+                        // Wide and no-ball don't increment currentBalls (handled by ball_index in API)
+                    }
+                    
+                    updateScoreDisplay();
+                    updateCurrentOver();
+                    addRecentBall(data);
+                    updatePlayerStats();
+                    
+                    // Check for over completion (only for legal balls)
+                    // Over = 6 legal deliveries
+                    // Wide and no-ball don't count as legal deliveries, so they don't complete overs
+                    const isLegalDelivery = isLegalBall(data.type, data.extra_type);
+                    
+                    // Track legal balls bowled by current bowler (for mandatory change after 1 over)
+                    if (isLegalDelivery && currentBowlerId) {
+                        currentBowlerBalls++;
+                        // Reset when over completes (6 legal balls)
+                        if (currentBowlerBalls >= 6) {
+                            currentBowlerBalls = 0; // Reset for next over
+                            updateBowlerSelectState(); // Enable bowler change
+                        } else {
+                            updateBowlerSelectState(); // Disable bowler change if not complete
+                        }
+                    }
+                    
+                    if (isLegalDelivery && currentBalls % 6 === 0 && currentBalls > 0) {
+                        currentOvers++;
+                        currentBalls = 0;
+                        currentOverBalls = [];
+                        swapStrike(); // Strike rotates after over completion
+                        showOverNotification();
+                        
+                        // Bowler change is now mandatory after 1 over (6 legal balls)
+                        // Bowler select is enabled after over completion
+                        
+                        // Update lastOverBowlerId when over completes
+                        lastOverBowlerId = currentBowlerId;
+                    }
+                    
+                    // Check for innings completion after EVERY ball
+                    // Innings ends when: 10 wickets OR max overs reached OR (innings 2 AND target reached)
+                    // This check happens after every ball, not just when over completes
+                    // isInningsComplete() already checks all conditions including target reached for innings 2
+                    if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                        checkInningsCompletion();
+                    }
+                    
+                    // Enable undo button
+                    document.getElementById('undo-btn').disabled = false;
+                } else {
+                    if (result.error === 'Sequence conflict') {
+                        alert('Conflict detected. Reloading...');
+                        loadMatchState();
+                    } else {
+                        alert('Error: ' + (result.error || 'Failed to record ball'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to record ball');
+            });
+        }
+
+        function updateStatsAfterBall(data, striker, bowler) {
+            // This will be called after successful ball recording
+        }
+
+        /**
+         * Swap striker and non-striker positions
+         * Called after odd runs (1, 3) or after over completion
+         */
+        function swapStrike() {
+            // Swap striker and non-striker
+            const temp = currentStrikerId;
+            currentStrikerId = currentNonStrikerId;
+            currentNonStrikerId = temp;
+            
+            // Update UI
+            const strikerSelect = document.getElementById('striker');
+            const nonStrikerSelect = document.getElementById('non-striker');
+            
+            if (currentStrikerId) {
+                strikerSelect.value = currentStrikerId;
+                updateStriker();
+            }
+            if (currentNonStrikerId) {
+                nonStrikerSelect.value = currentNonStrikerId;
+                updateNonStriker();
+            }
+        }
+
+        function updateCurrentOver() {
+            const overNumber = currentOvers + 1;
+            const overNumberEl = document.getElementById('current-over-number');
+            if (overNumberEl) overNumberEl.textContent = `Over ${overNumber}`;
+            
+            // Update compact over display in score header
+            const compactOverBalls = document.getElementById('current-over-balls-compact');
+            if (compactOverBalls) {
+                compactOverBalls.innerHTML = '';
+                for (let i = 0; i < 6; i++) {
+                    const ballDiv = document.createElement('div');
+                    ballDiv.className = 'over-ball-compact';
+                    if (i < currentBalls) {
+                        ballDiv.classList.add('filled');
+                        if (currentOverBalls[i]) {
+                            ballDiv.textContent = currentOverBalls[i];
+                        }
+                    }
+                    compactOverBalls.appendChild(ballDiv);
+                }
+            }
+            
+            // Update regular over display (if exists)
+            const overBallsContainer = document.getElementById('current-over-balls');
+            if (overBallsContainer) {
+                overBallsContainer.innerHTML = '';
+                for (let i = 0; i < 6; i++) {
+                    const ballDiv = document.createElement('div');
+                    ballDiv.className = 'over-ball';
+                    if (i < currentBalls) {
+                        ballDiv.classList.add('filled');
+                        if (currentOverBalls[i]) {
+                            ballDiv.textContent = currentOverBalls[i];
+                        }
+                    }
+                    overBallsContainer.appendChild(ballDiv);
+                }
+            }
+            
+            // Update current over summary card
+            updateCurrentOverSummary();
+        }
+        
+        /**
+         * Update the current over summary card
+         */
+        function updateCurrentOverSummary() {
+            const runsEl = document.getElementById('current-over-runs');
+            const ballsEl = document.getElementById('current-over-balls');
+            const extrasEl = document.getElementById('current-over-extras');
+            const ballsDisplay = document.getElementById('current-over-balls-display');
+            
+            if (runsEl) runsEl.textContent = currentOverRuns;
+            if (ballsEl) ballsEl.textContent = currentOverLegalBalls;
+            if (extrasEl) extrasEl.textContent = currentOverExtras;
+            
+            // Update balls display
+            if (ballsDisplay) {
+                ballsDisplay.innerHTML = '';
+                currentOverBalls.forEach(ball => {
+                    const badge = document.createElement('div');
+                    badge.style.cssText = 'min-width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; padding: 0 6px;';
+                    
+                    if (ball === 'W') {
+                        badge.style.background = '#dc2626';
+                        badge.style.color = 'white';
+                    } else if (ball === 'Wd' || ball.toString().startsWith('Wd')) {
+                        badge.style.background = '#f59e0b';
+                        badge.style.color = 'white';
+                    } else if (ball === 'Nb' || ball.toString().startsWith('Nb')) {
+                        badge.style.background = '#f59e0b';
+                        badge.style.color = 'white';
+                    } else if (ball === 4 || ball === '4') {
+                        badge.style.background = '#10b981';
+                        badge.style.color = 'white';
+                    } else if (ball === 6 || ball === '6') {
+                        badge.style.background = '#8b5cf6';
+                        badge.style.color = 'white';
+                    } else {
+                        badge.style.background = '#e0f2fe';
+                        badge.style.color = '#0c4a6e';
+                    }
+                    
+                    badge.textContent = ball;
+                    ballsDisplay.appendChild(badge);
+                });
+            }
+        }
+        
+        /**
+         * Filter bowler dropdown to exclude the previous over's bowler
+         * @param {number} excludeBowlerId - Bowler ID to exclude from dropdown
+         */
+        function filterBowlerDropdown(excludeBowlerId) {
+            if (!excludeBowlerId) return;
+            
+            const bowlerSelect = document.getElementById('bowler');
+            if (!bowlerSelect) return;
+            
+            // Disable the option for the previous bowler
+            Array.from(bowlerSelect.options).forEach(option => {
+                if (option.value == excludeBowlerId) {
+                    option.disabled = true;
+                    option.style.color = '#9ca3af';
+                    option.textContent = option.textContent.replace(' (bowled last over)', '') + ' (bowled last over)';
+                } else {
+                    option.disabled = false;
+                    option.style.color = '';
+                    option.textContent = option.textContent.replace(' (bowled last over)', '');
+                }
+            });
+        }
+
+        function showOverNotification() {
+            const notification = document.getElementById('over-notification');
+            const text = document.getElementById('over-notification-text');
+            
+            // Calculate total runs in the completed over
+            const overRuns = currentOverRuns;
+            
+            text.textContent = `Over ${currentOvers} Complete! ${overRuns} runs`;
+            notification.classList.add('show');
+            
+            // Reset current over tracking
+            currentOverRuns = 0;
+            currentOverExtras = 0;
+            currentOverLegalBalls = 0;
+            updateCurrentOverSummary();
+            
+            
+            // Clear bowler selection to force new bowler choice
+            const bowlerSelect = document.getElementById('bowler');
+            if (bowlerSelect) {
+                bowlerSelect.value = '';
+                updateBowler();
+            }
+            
+            // Filter out the previous bowler from dropdown
+            filterBowlerDropdown(lastOverBowlerId);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                
+                // After popup closes, prompt for new bowler
+                setTimeout(() => {
+                    if (bowlerSelect) {
+                        bowlerSelect.focus();
+                        // Show a subtle hint
+                        const bowlerLabel = bowlerSelect.previousElementSibling;
+                        if (bowlerLabel) {
+                            bowlerLabel.style.color = '#dc2626';
+                            bowlerLabel.textContent = 'Bowler (Select new bowler)';
+                            setTimeout(() => {
+                                bowlerLabel.style.color = '';
+                                bowlerLabel.textContent = 'Bowler';
+                            }, 3000);
+                        }
+                    }
+                }, 500);
+            }, 5000);  // Changed from 3000 to 5000 (5 seconds)
+        }
+        
+        /**
+         * Show a notification message (for innings completion, match completion, etc.)
+         * 
+         * @param {string} title - Notification title
+         * @param {string} message - Notification message
+         * @param {string} type - Notification type ('success', 'info', 'warning', 'error')
+         */
+        function showNotification(title, message, type = 'info') {
+            // Create notification element if it doesn't exist
+            let notification = document.getElementById('completion-notification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.id = 'completion-notification';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: var(--spacing-lg);
+                    border-radius: var(--radius-lg);
+                    z-index: 2000;
+                    text-align: center;
+                    box-shadow: var(--shadow-xl);
+                    max-width: 90%;
+                    min-width: 300px;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                
+                // Add animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes slideIn {
+                        from {
+                            opacity: 0;
+                            transform: translate(-50%, -60%);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translate(-50%, -50%);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                document.body.appendChild(notification);
+            }
+            
+            // Set colors based on type
+            let bgColor = '#17a2b8'; // Default info (blue)
+            if (type === 'success') bgColor = '#28a745'; // Green
+            else if (type === 'warning') bgColor = '#ffc107'; // Yellow
+            else if (type === 'error') bgColor = '#dc3545'; // Red
+            
+            notification.style.background = bgColor;
+            notification.style.color = 'white';
+            notification.innerHTML = `
+                <div style="font-size: 2rem; margin-bottom: var(--spacing-sm);">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</div>
+                <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: var(--spacing-sm);">${title}</div>
+                <div style="font-size: 1rem; white-space: pre-line; opacity: 0.95;">${message}</div>
+            `;
+            notification.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        /**
+         * Check if innings is complete
+         * Innings ends when: 10 wickets fall OR max overs reached
+         * Uses helper function isInningsComplete() for consistency
+         */
+        /**
+         * Check and handle innings completion
+         * Disables scoring buttons and prompts to start next innings
+         */
+        function checkInningsCompletion() {
+            if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                // Disable all scoring buttons
+                disableScoringButtons();
+                
+                if (currentInnings === 1) {
+                    // Auto-change to innings 2 when innings 1 completes
+                    // Completion triggers: 10 wickets OR max overs reached
+                    const reason = currentWickets >= 10 
+                        ? 'All 10 wickets fallen' 
+                        : `${maxOvers} overs completed`;
+                    
+                    console.log(`Innings 1 Complete! (${reason}) - Final Score: ${currentScore}/${currentWickets} - Auto-changing to 2nd innings...`);
+                    
+                    // Show notification with completion reason
+                    showNotification(
+                        '🎯 Innings 1 Complete!', 
+                        `Reason: ${reason}\nFinal Score: ${currentScore}/${currentWickets}\n\nPlease start 2nd innings.`, 
+                        'success'
+                    );
+                    
+                    // Show Start 2nd Innings Button
+                    const startBtn = document.getElementById('start-2nd-innings-btn');
+                    if (startBtn) {
+                        startBtn.style.display = 'block';
+                    }
+                } else if (currentInnings === 2) {
+                    // Auto-finalize when innings 2 completes
+                    // Completion triggers: Target reached OR 10 wickets OR max overs reached
+                    const target = firstInningsTotal + 1;
+                    const won = currentScore >= target;
+                    
+                    // Determine reason for completion (priority: target > wickets > overs)
+                    let reason = '';
+                    if (won) {
+                        reason = `Target reached (${currentScore}/${target})`;
+                    } else if (currentWickets >= 10) {
+                        reason = 'All 10 wickets fallen';
+                    } else {
+                        reason = `${maxOvers} overs completed`;
+                    }
+                    
+                    const result = won ? '✅ Match Won!' : '❌ Match Lost';
+                    const notificationType = won ? 'success' : (currentWickets >= 10 ? 'error' : 'info');
+                    
+                    console.log(`Innings 2 Complete! (${reason}) - Final Score: ${currentScore}/${currentWickets} - Target: ${target} - ${result} - Auto-finalizing match...`);
+                    
+                    // Show notification with match result
+                    showNotification(
+                        '🏆 Match Complete!', 
+                        `${result}\nReason: ${reason}\nFinal Score: ${currentScore}/${currentWickets}\nTarget: ${target}\n\nAuto-finalizing match...`, 
+                        notificationType
+                    );
+                    
+                    // Auto-finalize match after 2 seconds
+                    setTimeout(() => {
+                        finalizeMatch(won);
+                    }, 2000);
+                }
+            }
+        }
+        
+        /**
+         * Disable all scoring buttons when innings is complete
+         */
+        function disableScoringButtons() {
+            // Disable run buttons
+            document.querySelectorAll('.score-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+            
+            // Disable extra buttons
+            document.querySelectorAll('.extra-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
+        
+        /**
+         * Enable all scoring buttons
+         */
+        function enableScoringButtons() {
+            document.querySelectorAll('.score-btn, .extra-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            });
+        }
+        
+        /**
+         * Finalize match when innings 2 completes
+         * Updates match state to 'completed' and sets winner_id in database
+         * 
+         * @param {boolean} won - True if batting team won, false if lost
+         */
+        function finalizeMatch(won) {
+            // Determine winner based on match data
+            const battingTeamId = <?= $battingTeamId ?>;
+            const team1Id = <?= $match['team1_id'] ?>;
+            const team2Id = <?= $match['team2_id'] ?>;
+            
+            // Winner determination:
+            // - If batting team (innings 2) won: winner is battingTeamId
+            // - If batting team lost (all out or overs completed without reaching target): winner is the other team (team that batted in innings 1)
+            // Note: In rare cases of tie (scores equal), winner_id can be null
+            const winnerId = won ? battingTeamId : (battingTeamId === team1Id ? team2Id : team1Id);
+            
+            // Check for tie (rare case: scores exactly equal)
+            const firstInningsTotal = <?= $firstInningsTotal ?>;
+            const isTie = !won && currentScore === firstInningsTotal;
+            
+            // Call API to finalize match
+            fetch('<?= apiUrl('matches.php') ?>/' + matchId + '/finalize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    winner_id: isTie ? null : winnerId, // null only in case of tie
+                    state: 'completed'
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Redirect to match view
+                    window.location.href = '<?= adminUrl('matches/view.php?id=' . $matchId) ?>';
+                } else {
+                    alert('Error finalizing match: ' + (result.error || 'Unknown error'));
+                    console.error('Finalize match error:', result);
+                    // Still redirect to view page
+                    window.location.href = '<?= adminUrl('matches/view.php?id=' . $matchId) ?>';
+                }
+            })
+            .catch(error => {
+         */
+        function changeInningsAjax() {
+            if (!confirm('Change to 2nd innings? This will reset the scoring interface.')) {
+                return;
+            }
+            
+            fetch('<?= apiUrl('matches.php') ?>/' + matchId + '/change-innings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Response is not JSON, likely an HTML error page
+                    return response.text().then(text => {
+                        console.error('Non-JSON response:', text.substring(0, 500));
+                        throw new Error('Server returned HTML instead of JSON. Check server logs for PHP errors.');
+                    });
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    // Close modal if open
+                    closeStartInningsModal();
+                    
+                    // Show success notification
+                    showNotification(
+                        '✅ 2nd Innings Started!',
+                        'Redirecting to 2nd innings scoring...',
+                        'success'
+                    );
+                    
+                    // Reload after short delay to show notification
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    const errorMsg = result.error || 'Failed to change innings';
+                    console.error('Change innings error:', errorMsg);
+                    alert('Error: ' + errorMsg);
+                }
+            })
+            .catch(error => {
+                console.error('Change innings fetch error:', error);
+                alert('Failed to change innings: ' + error.message + '\n\nPlease try again or contact support.');
+            });
+        }
+        
+        /**
+         * Legacy function name for backward compatibility
+         * Redirects to form-based method
+         */
+        function showStartInningsModal() {
+            document.getElementById('start-innings-modal').classList.add('active');
+        }
+
+        function closeStartInningsModal() {
+            document.getElementById('start-innings-modal').classList.remove('active');
+        }
+
+        function confirmStartInnings() {
+            closeStartInningsModal();
+            changeInnings();
+        }
+
+        function changeInnings() {
+            // Use form submission instead (more reliable)
+            const form = document.getElementById('change-innings-form');
+            if (form) {
+                form.submit();
+            } else {
+                // Fallback to AJAX
+                changeInningsAjax();
+            }
+        }
+
+        /**
+         * Update score display with current runs, wickets, overs, and run rates
+         * Run Rate Formula: (runs / balls) × 6
+         * Required Run Rate Formula: (remaining runs) / (remaining overs)
+         */
+        function updateScoreDisplay() {
+            const scoreStr = currentScore + '/' + currentWickets;
+            const overs = Math.floor(currentBalls / 6);
+            const balls = currentBalls % 6;
+            const oversStr = (currentOvers + overs) + '.' + balls;
+            
+            // Update main score display
+            const scoreEl = document.getElementById('current-score');
+            const oversEl = document.getElementById('current-overs');
+            if (scoreEl) scoreEl.textContent = scoreStr;
+            if (oversEl) oversEl.textContent = oversStr + ' Overs';
+            
+            // Calculate run rate using helper function: (runs / balls) × 6
+            const totalBalls = currentOvers * 6 + currentBalls;
+            const runRate = calculateRunRate(currentScore, totalBalls).toFixed(2);
+            const rrEl = document.getElementById('run-rate');
+            if (rrEl) rrEl.textContent = runRate;
+            
+            // Update mini scorecard
+            const scorecardRuns = document.getElementById('scorecard-runs');
+            const scorecardWickets = document.getElementById('scorecard-wickets');
+            const scorecardOvers = document.getElementById('scorecard-overs');
+            const scorecardRR = document.getElementById('scorecard-rr');
+            if (scorecardRuns) scorecardRuns.textContent = currentScore;
+            if (scorecardWickets) scorecardWickets.textContent = currentWickets;
+            if (scorecardOvers) scorecardOvers.textContent = oversStr;
+            if (scorecardRR) scorecardRR.textContent = runRate;
+            
+            // Calculate required run rate for 2nd innings using helper function
+            if (currentInnings == 2 && firstInningsTotal > 0) {
+                const target = calculateTarget(firstInningsTotal);
+                const remainingOvers = maxOvers - (currentOvers + currentBalls / 6);
+                const requiredRR = calculateRequiredRunRate(target, currentScore, remainingOvers).toFixed(2);
+                const reqRREl = document.getElementById('required-rr');
+                if (reqRREl) reqRREl.textContent = requiredRR;
+            }
+        }
+
+        function updatePlayerStats() {
+            updateStrikerStats();
+            updateNonStrikerStats();
+            updateBowlerStats();
+        }
+
+        function undoLastBall() {
+            if (eventHistory.length === 0) {
+                return;
+            }
+            
+            if (!confirm('Undo last ball? This cannot be undone.')) {
+                return;
+            }
+            
+            const lastEvent = eventHistory.pop();
+            
+            // Reverse the stats
+            if (lastEvent.type === 'run') {
+                currentScore -= lastEvent.runs || 0;
+                currentBalls--;
+                if (playerStats.batsmen[lastEvent.striker_id]) {
+                    playerStats.batsmen[lastEvent.striker_id].runs -= lastEvent.runs || 0;
+                    playerStats.batsmen[lastEvent.striker_id].balls--;
+                    if (lastEvent.runs === 4) playerStats.batsmen[lastEvent.striker_id].fours--;
+                    if (lastEvent.runs === 6) playerStats.batsmen[lastEvent.striker_id].sixes--;
+                }
+                if (playerStats.bowlers[lastEvent.bowler_id]) {
+                    playerStats.bowlers[lastEvent.bowler_id].runs -= lastEvent.runs || 0;
+                    playerStats.bowlers[lastEvent.bowler_id].balls--;
+                }
+            } else if (lastEvent.type === 'wicket') {
+                currentWickets--;
+                currentBalls--;
+                if (playerStats.batsmen[lastEvent.striker_id]) {
+                    playerStats.batsmen[lastEvent.striker_id].balls--;
+                }
+                if (playerStats.bowlers[lastEvent.bowler_id]) {
+                    playerStats.bowlers[lastEvent.bowler_id].wickets--;
+                    playerStats.bowlers[lastEvent.bowler_id].balls--;
+                }
+            } else if (lastEvent.type === 'extra') {
+                // Undo extras: subtract the runs that were added
+                const extraRuns = lastEvent.runs || 1;
+                currentScore -= extraRuns;
+                if (playerStats.bowlers[lastEvent.bowler_id]) {
+                    playerStats.bowlers[lastEvent.bowler_id].runs -= extraRuns;
+                }
+                // Wide and no-ball don't count as legal deliveries, so don't decrement balls
+                if (isLegalBall('extra', lastEvent.extra_type)) {
+                    currentBalls--;
+                    if (playerStats.bowlers[lastEvent.bowler_id]) {
+                        playerStats.bowlers[lastEvent.bowler_id].balls--;
+                    }
+                }
+            }
+            
+            // Adjust overs if needed
+            if (currentBalls < 0) {
+                currentOvers--;
+                currentBalls = 5;
+            }
+            
+            // Update bowler ball count on undo (decrement if legal delivery was undone)
+            if (isLegalBall(lastEvent.type, lastEvent.extra_type)) {
+                if (currentBowlerId && currentBowlerBalls > 0) {
+                    currentBowlerBalls--;
+                    updateBowlerSelectState();
+                }
+            } else if (lastEvent.type === 'wicket') {
+                // Wickets are legal deliveries
+                if (currentBowlerId && currentBowlerBalls > 0) {
+                    currentBowlerBalls--;
+                    updateBowlerSelectState();
+                }
+            }
+            
+            updateScoreDisplay();
+            updateCurrentOver();
+            updatePlayerStats();
+            updateBowlerSelectState(); // Update bowler select state after undo
+            loadMatchState(); // Reload to sync with server
+            
+            if (eventHistory.length === 0) {
+                document.getElementById('undo-btn').disabled = true;
+            }
+        }
+
+        function loadMatchState() {
+            // Get sync status
+            fetch('<?= apiUrl('events.php') ?>?path=/sync-status&match_id=' + matchId, {
+                credentials: 'same-origin'
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        serverSeq = result.server_seq;
+                        
+                        // Only fetch events if we have new data or haven't loaded yet
+                        if (serverSeq > lastKnownSeq || lastKnownSeq === 0) {
+                            lastKnownSeq = serverSeq;
+                            fetchEvents();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sync status:', error);
+                });
+        }
+
+        function fetchEvents() {
+            // Load events to calculate score (filtered by current innings on server if possible)
+            // Note: We filter by innings in JavaScript to ensure only current innings events are processed
+            fetch('<?= apiUrl('events.php') ?>?path=/matches/' + matchId + '/events&innings=' + currentInnings, {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            console.error('Events non-JSON response:', text.substring(0, 500));
+                            throw new Error('Server returned HTML instead of JSON. Check server logs for PHP errors.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.success && result.data) {
+                        // Reset stats
+                        currentScore = 0;
+                        currentWickets = 0;
+                        currentBalls = 0;
+                        currentBowlerBalls = 0; // Reset bowler ball count
+                        playerStats = { batsmen: {}, bowlers: {} };
+                        eventHistory = [];
+                        
+                        // Filter events by current innings only
+                        const currentInningsEvents = result.data.filter(event => {
+                            const payload = JSON.parse(event.payload_json || '{}');
+                            const eventInnings = payload.innings || 1; // Default to 1 if not set
+                            return eventInnings === currentInnings;
+                        });
+                        
+                        currentInningsEvents.forEach(event => {
+                            const payload = JSON.parse(event.payload_json || '{}');
+                            const strikerId = payload.striker_id;
+                            const bowlerId = payload.bowler_id;
+                            
+                            // Track last over bowler
+                            // We need to reconstruct the overs to find who bowled the last completed over
+                            // This is complex to do perfectly from event stream without over markers,
+                            // but we can infer it from ball counts.
+                            
+                            // Initialize player stats
+                            if (strikerId && !playerStats.batsmen[strikerId]) {
+                                playerStats.batsmen[strikerId] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                            }
+                            if (bowlerId && !playerStats.bowlers[bowlerId]) {
+                                playerStats.bowlers[bowlerId] = { runs: 0, balls: 0, wickets: 0, overs: 0 };
+                            }
+                            
+                            if (payload.type === 'run') {
+                                currentScore += payload.runs || 0;
+                                currentBalls++;
+                                if (playerStats.batsmen[strikerId]) {
+                                    playerStats.batsmen[strikerId].runs += payload.runs || 0;
+                                    playerStats.batsmen[strikerId].balls++;
+                                    if (payload.runs === 4) playerStats.batsmen[strikerId].fours++;
+                                    if (payload.runs === 6) playerStats.batsmen[strikerId].sixes++;
+                                }
+                                if (playerStats.bowlers[bowlerId]) {
+                                    playerStats.bowlers[bowlerId].runs += payload.runs || 0;
+                                    playerStats.bowlers[bowlerId].balls++;
+                                }
+                                // Track legal balls for current bowler
+                                if (currentBowlerId === bowlerId) {
+                                    currentBowlerBalls++;
+                                    if (currentBowlerBalls >= 6) {
+                                        currentBowlerBalls = 0; // Reset for next over
+                                    }
+                                }
+                            } else if (payload.type === 'wicket') {
+                                currentWickets++;
+                                currentBalls++;
+                                if (playerStats.batsmen[strikerId]) {
+                                    playerStats.batsmen[strikerId].balls++;
+                                }
+                                if (playerStats.bowlers[bowlerId]) {
+                                    playerStats.bowlers[bowlerId].wickets++;
+                                    playerStats.bowlers[bowlerId].balls++;
+                                }
+                                // Track legal balls for current bowler (wickets are legal deliveries)
+                                if (currentBowlerId === bowlerId) {
+                                    currentBowlerBalls++;
+                                    if (currentBowlerBalls >= 6) {
+                                        currentBowlerBalls = 0; // Reset for next over
+                                    }
+                                }
+                            } else if (payload.type === 'extra') {
+                                // Extras: wide, no-ball (1 run + additional runs), bye, leg-bye (1+ runs)
+                                const extraRuns = payload.runs || 1;
+                                currentScore += extraRuns;
+                                if (playerStats.bowlers[bowlerId]) {
+                                    playerStats.bowlers[bowlerId].runs += extraRuns;
+                                }
+                                // Wide and no-ball don't count as legal deliveries
+                                if (isLegalBall('extra', payload.extra_type)) {
+                                    currentBalls++;
+                                    if (playerStats.bowlers[bowlerId]) {
+                                        playerStats.bowlers[bowlerId].balls++;
+                                    }
+                                }
+                            } else if (payload.type === 'retired_hurt') {
+                                // Retired hurt doesn't count as wicket or ball
+                                // Just track the replacement
+                                if (payload.replacement_player_id && !playerStats.batsmen[payload.replacement_player_id]) {
+                                    playerStats.batsmen[payload.replacement_player_id] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                                }
+                            }
+                            
+                            // Update current players from event
+                            if (payload.striker_id) {
+                                currentStrikerId = payload.striker_id;
+                            }
+                            if (payload.non_striker_id) {
+                                currentNonStrikerId = payload.non_striker_id;
+                            }
+                            if (payload.bowler_id) {
+                                currentBowlerId = payload.bowler_id;
+                            }
+                            
+                            // CRITICAL FIX: Apply strike rotation after run events
+                            // This ensures auto-refresh doesn't undo strike rotations
+                            if (payload.type === 'run') {
+                                const runs = payload.runs || 0;
+                                // Odd runs (1, 3, 5) rotate strike
+                                if (shouldRotateStrike(runs, false)) {
+                                    // Swap striker and non-striker
+                                    const temp = currentStrikerId;
+                                    currentStrikerId = currentNonStrikerId;
+                                    currentNonStrikerId = temp;
+                                }
+                            }
+                            
+                            // Also handle strike rotation for extras with runs
+                            if (payload.type === 'extra' && (payload.extra_type === 'wide' || payload.extra_type === 'no-ball')) {
+                                const extraRuns = payload.runs || 1;
+                                const additionalRuns = extraRuns - 1; // Subtract base run
+                                if (shouldRotateStrike(additionalRuns, payload.extra_type === 'no-ball')) {
+                                    const temp = currentStrikerId;
+                                    currentStrikerId = currentNonStrikerId;
+                                    currentNonStrikerId = temp;
+                                }
+                            }
+                            
+                            // Handle strike rotation at end of over
+                            if (currentBalls % 6 === 0 && currentBalls > 0 && isLegalBall(payload.type, payload.extra_type)) {
+                                // Strike rotates at end of over
+                                const temp = currentStrikerId;
+                                currentStrikerId = currentNonStrikerId;
+                                currentNonStrikerId = temp;
+                            }
+                            
+                            // Handle wicket new batsman
+                            if (payload.type === 'wicket' && payload.new_batsman_id) {
+                                currentStrikerId = payload.new_batsman_id;
+                                if (!playerStats.batsmen[payload.new_batsman_id]) {
+                                    playerStats.batsmen[payload.new_batsman_id] = { runs: 0, balls: 0, fours: 0, sixes: 0 };
+                                }
+                            }
+                            
+                            // Handle retired hurt replacement
+                            if (payload.type === 'retired_hurt' && payload.replacement_player_id) {
+                                currentStrikerId = payload.replacement_player_id;
+                            }
+                            
+                            // Add to event history for undo
+                            eventHistory.push({
+                                type: payload.type,
+                                runs: payload.runs || 0,
+                                striker_id: strikerId,
+                                bowler_id: bowlerId,
+                                extra_type: payload.extra_type || null,
+                                dismissal_type: payload.dismissal_type || null,
+                                timestamp: Date.now()
+                            });
+                        });
+                        
+                        currentOvers = Math.floor(currentBalls / 6);
+                        const totalBallsInInnings = currentBalls;
+                        currentBalls = currentBalls % 6;
+                        
+                        // Calculate currentBowlerBalls: count legal balls bowled by current bowler in current over
+                        // Count backwards from last events to find how many legal balls current bowler has bowled
+                        if (currentBowlerId && currentInningsEvents.length > 0) {
+                            currentBowlerBalls = 0;
+                            // Count backwards from the end, only counting legal balls by current bowler
+                            for (let i = currentInningsEvents.length - 1; i >= 0 && currentBowlerBalls < 6; i--) {
+                                const event = currentInningsEvents[i];
+                                const payload = JSON.parse(event.payload_json || '{}');
+                                const isLegal = isLegalBall(payload.type, payload.extra_type);
+                                
+                                if (isLegal && payload.bowler_id === currentBowlerId) {
+                                    currentBowlerBalls++;
+                                } else if (payload.bowler_id !== currentBowlerId && isLegal) {
+                                    // Different bowler, stop counting
+                                    break;
+                                }
+                            }
+                            // Ensure it doesn't exceed 6
+                            currentBowlerBalls = Math.min(currentBowlerBalls, 6);
+                        }
+                        
+                        // Calculate lastOverBowlerId
+                        // Find the last event of the PREVIOUS over
+                        if (currentOvers > 0) {
+                            // We need to find who bowled the over before the current one
+                            // Iterate backwards to find the last ball of the previous over
+                            let ballsCounted = 0;
+                            let currentOverBallsCount = currentBalls;
+                            
+                            // Skip current over balls
+                            let eventIndex = currentInningsEvents.length - 1;
+                            while (eventIndex >= 0 && currentOverBallsCount > 0) {
+                                const event = currentInningsEvents[eventIndex];
+                                const payload = JSON.parse(event.payload_json || '{}');
+                                if (isLegalBall(payload.type, payload.extra_type)) {
+                                    currentOverBallsCount--;
+                                }
+                                eventIndex--;
+                            }
+                            
+                            // Now eventIndex points to the last event of previous over (or before)
+                            // We need to find the bowler of that over
+                            if (eventIndex >= 0) {
+                                const lastOverEvent = currentInningsEvents[eventIndex];
+                                const lastOverPayload = JSON.parse(lastOverEvent.payload_json || '{}');
+                                lastOverBowlerId = lastOverPayload.bowler_id;
+                            }
+                        } else {
+                            lastOverBowlerId = null;
+                        }
+
+                        updateScoreDisplay();
+                        updateCurrentOver();
+                        updatePlayerStats();
+                        
+                        // Update bowler select state after loading match state
+                        updateBowlerSelectState();
+                        
+                        // PERSISTENCE FIX: Ensure dropdowns reflect the current state
+                        // Only update if value has actually changed to avoid unnecessary updates
+                        if (currentStrikerId) {
+                            const strikerSelect = document.getElementById('striker');
+                            if (strikerSelect && strikerSelect.value != currentStrikerId) {
+                                strikerSelect.value = currentStrikerId;
+                                updateStriker(); // Update UI
+                            }
+                        }
+                        if (currentNonStrikerId) {
+                            const nonStrikerSelect = document.getElementById('non-striker');
+                            if (nonStrikerSelect && nonStrikerSelect.value != currentNonStrikerId) {
+                                nonStrikerSelect.value = currentNonStrikerId;
+                                updateNonStriker(); // Update UI
+                            }
+                        }
+                        if (currentBowlerId) {
+                            const bowlerSelect = document.getElementById('bowler');
+                            // Only update if different AND not empty (preserve user selection)
+                            // ALSO: Don't update if user manually changed bowler after over completion
+                            if (bowlerSelect && bowlerSelect.value != currentBowlerId && currentBowlerId && !userChangedBowlerAfterOver) {
+                                bowlerSelect.value = currentBowlerId;
+                                updateBowler(); // Update UI
+                            }
+                        }
+                        
+                        // Update recent balls (only from current innings)
+                        updateRecentBalls(currentInningsEvents.slice(-6));
+                        
+                        // Check if innings is complete after loading state
+                        if (isInningsComplete(currentWickets, currentOvers, currentBalls, maxOvers)) {
+                            disableScoringButtons();
+                        } else {
+                            enableScoringButtons();
+                        }
+                        
+                        // Enable/disable undo button
+                        document.getElementById('undo-btn').disabled = eventHistory.length === 0;
+                        
+                        // Update new batsman dropdown if modal is open or will be opened
+                        // This ensures the dropdown is always up-to-date with current state
+                        if (document.getElementById('new-batsman-modal')?.classList.contains('active')) {
+                            updateNewBatsmanDropdown();
+                        }
+                    }
+                });
+        }
+
+        function updateRecentBalls(events) {
+            // Update compact recent balls
+            const recentBallsCompact = document.getElementById('recent-balls-compact');
+            if (recentBallsCompact) {
+                recentBallsCompact.innerHTML = '';
+                
+                if (events.length === 0) {
+                    recentBallsCompact.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.75rem;">No balls yet</div>';
+                } else {
+                    events.forEach(event => {
+                        const payload = JSON.parse(event.payload_json || '{}');
+                        const ballDiv = document.createElement('div');
+                        ballDiv.className = 'ball-badge-compact';
+                        
+                        if (payload.type === 'run') {
+                            ballDiv.className += ' ball-' + payload.runs;
+                            ballDiv.textContent = payload.runs;
+                        } else if (payload.type === 'wicket') {
+                            ballDiv.className += ' ball-w';
+                            ballDiv.textContent = 'W';
+                        } else if (payload.type === 'extra') {
+                            ballDiv.className += ' ball-' + (payload.extra_type === 'wide' ? 'wb' : 'nb');
+                            ballDiv.textContent = payload.extra_type === 'wide' ? 'Wd' : 'Nb';
+                        }
+                        
+                        recentBallsCompact.appendChild(ballDiv);
+                    });
+                }
+            }
+            
+            // Update regular recent balls (if exists)
+            const recentBalls = document.getElementById('recent-balls');
+            if (recentBalls) {
+                recentBalls.innerHTML = '';
+                
+                if (events.length === 0) {
+                    recentBalls.innerHTML = '<div style="color: var(--text-secondary);">No balls recorded yet</div>';
+                } else {
+                    events.forEach(event => {
+                        const payload = JSON.parse(event.payload_json || '{}');
+                        const ballDiv = document.createElement('div');
+                        ballDiv.className = 'ball-badge';
+                        
+                        if (payload.type === 'run') {
+                            ballDiv.className += ' ball-' + payload.runs;
+                            ballDiv.textContent = payload.runs;
+                        } else if (payload.type === 'wicket') {
+                            ballDiv.className += ' ball-w';
+                            ballDiv.textContent = 'W';
+                        } else if (payload.type === 'extra') {
+                            const extraRuns = payload.runs || 1;
+                            ballDiv.className += ' ball-' + (payload.extra_type === 'wide' ? 'wb' : 'nb');
+                            if (extraRuns > 1) {
+                                ballDiv.textContent = (payload.extra_type === 'wide' ? 'Wd' : 'Nb') + extraRuns;
+                            } else {
+                                ballDiv.textContent = payload.extra_type === 'wide' ? 'Wd' : 'Nb';
+                            }
+                        } else if (payload.type === 'retired_hurt') {
+                            ballDiv.className += ' ball-w';
+                            ballDiv.textContent = 'RH';
+                        }
+                        
+                        recentBalls.appendChild(ballDiv);
+                    });
+                }
+            }
+        }
+
+        function addRecentBall(data) {
+            // Update compact recent balls
+            const recentBallsCompact = document.getElementById('recent-balls-compact');
+            if (recentBallsCompact) {
+                const ballDiv = document.createElement('div');
+                ballDiv.className = 'ball-badge-compact';
+                
+                if (data.type === 'run') {
+                    ballDiv.className += ' ball-' + data.runs;
+                    ballDiv.textContent = data.runs;
+                    currentOverBalls.push(data.runs);
+                } else if (data.type === 'wicket') {
+                    ballDiv.className += ' ball-w';
+                    ballDiv.textContent = 'W';
+                    currentOverBalls.push('W');
+                } else if (data.type === 'extra') {
+                    const extraRuns = data.runs || 1;
+                    ballDiv.className += ' ball-' + (data.extra_type === 'wide' ? 'wb' : 'nb');
+                    if (extraRuns > 1) {
+                        ballDiv.textContent = (data.extra_type === 'wide' ? 'Wd' : 'Nb') + extraRuns;
+                        currentOverBalls.push((data.extra_type === 'wide' ? 'Wd' : 'Nb') + extraRuns);
+                    } else {
+                        ballDiv.textContent = data.extra_type === 'wide' ? 'Wd' : 'Nb';
+                        currentOverBalls.push(data.extra_type === 'wide' ? 'Wd' : 'Nb');
+                    }
+                } else if (data.type === 'retired_hurt') {
+                    ballDiv.className += ' ball-w';
+                    ballDiv.textContent = 'RH';
+                    currentOverBalls.push('RH');
+                }
+                
+                // Remove "No balls yet" message if exists
+                const noBallsMsg = recentBallsCompact.querySelector('div[style*="color"]');
+                if (noBallsMsg) noBallsMsg.remove();
+                
+                recentBallsCompact.insertBefore(ballDiv, recentBallsCompact.firstChild);
+                
+                // Keep only last 6 balls
+                while (recentBallsCompact.children.length > 6) {
+                    recentBallsCompact.removeChild(recentBallsCompact.lastChild);
+                }
+            }
+            
+            // Update regular recent balls (if exists)
+            const recentBalls = document.getElementById('recent-balls');
+            if (recentBalls) {
+                const ballDiv = document.createElement('div');
+                ballDiv.className = 'ball-badge';
+                
+                if (data.type === 'run') {
+                    ballDiv.className += ' ball-' + data.runs;
+                    ballDiv.textContent = data.runs;
+                } else if (data.type === 'wicket') {
+                    ballDiv.className += ' ball-w';
+                    ballDiv.textContent = 'W';
+                } else if (data.type === 'extra') {
+                    ballDiv.className += ' ball-' + (data.extra_type === 'wide' ? 'wb' : 'nb');
+                    ballDiv.textContent = data.extra_type === 'wide' ? 'Wd' : 'Nb';
+                }
+                
+                recentBalls.insertBefore(ballDiv, recentBalls.firstChild);
+                
+                // Keep only last 6 balls
+                while (recentBalls.children.length > 6) {
+                    recentBalls.removeChild(recentBalls.lastChild);
+                }
+            }
+        }
+
+        // Auto-refresh disabled (using PHP state)
+        /*
+        setInterval(() => {
+            loadMatchState();
+        }, 2000);
+
+        // Load initial state
+        loadMatchState();
+        */
+        
+        // Initialize UI with current selections
+        if (document.getElementById('striker').value) updateStriker();
+        if (document.getElementById('non-striker').value) updateNonStriker();
+        if (document.getElementById('bowler').value) updateBowler();
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('_t')) {
+            // Cache-busting parameter present - force full reload
+            console.log('Innings change detected, forcing state reload...');
+            
+            // Clear any cached state
+            currentScore = 0;
+            currentWickets = 0;
+            currentBalls = 0;
+            currentOvers = 0;
+            playerStats = { batsmen: {}, bowlers: {} };
+            eventHistory = [];
+            currentStrikerId = null;
+            currentNonStrikerId = null;
+            currentBowlerId = null;
+            currentOverBalls = [];
+            
+            // Reset player selections
+            document.getElementById('striker').value = '';
+            document.getElementById('non-striker').value = '';
+            document.getElementById('bowler').value = '';
+            loadMatchState();
+            if (document.getElementById('striker').value) updateStriker();
+            if (document.getElementById('non-striker').value) updateNonStriker();
+            if (document.getElementById('bowler').value) updateBowler();
+            // Force reload match state after a short delay
+            setTimeout(() => {
+                console.log('Reloading match state for innings 2...');
+                loadMatchState();
+                
+                // Initialize UI with current selections after state is loaded
+                if (document.getElementById('striker').value) updateStriker();
+                if (document.getElementById('non-striker').value) updateNonStriker();
+                if (document.getElementById('bowler').value) updateBowler();
+                
+                // Update UI to reflect innings 2
+                if (currentInnings === 2) {
+                    console.log('Innings 2 confirmed, updating UI...');
+                    // The page should already show innings 2 indicator from PHP
+                    // But ensure scoring buttons are enabled
+                    enableScoringButtons();
+                }
+            }, 500);
+            
+            // Remove cache-busting parameter from URL after reload
+            setTimeout(() => {
+                const newUrl = window.location.pathname + '?id=' + matchId;
+                window.history.replaceState({}, '', newUrl);
+            }, 1000);
+        }
+        
+        // Close modals when clicking outside
+        document.getElementById('wicket-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeWicketModal();
+            }
+        });
+        
+        document.getElementById('extra-runs-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExtraRunsModal();
+            }
+        });
+        
+        document.getElementById('new-batsman-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNewBatsmanModal();
+            }
+        });
+        
+        document.getElementById('retired-hurt-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRetiredHurtModal();
+            }
+        });
+    </script>
+    <script src="<?= adminUrl('includes/sidebar-toggle.js') ?>"></script>
+</body>
+</html>

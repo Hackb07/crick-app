@@ -1,0 +1,24 @@
+<?php
+/**
+ * Local Configuration File
+ * 
+ * Copy this file to config.local.php and update with your settings.
+ * This file is excluded from version control.
+ */
+
+// Database Configuration
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'cricapp');
+define('DB_USER', 'your_username');
+define('DB_PASS', 'your_password');
+define('DB_CHARSET', 'utf8mb4');
+
+// JWT Configuration
+define('JWT_SECRET', 'your-secret-key-change-this-in-production');
+define('JWT_ALGORITHM', 'HS256');
+define('JWT_EXPIRY', 3600); // 1 hour
+define('JWT_REFRESH_EXPIRY', 86400); // 24 hours
+
+// Debug Mode
+define('DEBUG_MODE', false);
+

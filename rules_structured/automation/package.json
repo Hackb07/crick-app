@@ -1,0 +1,28 @@
+{
+    "name": "kavin45-rules-automation",
+    "version": "1.0.0",
+    "description": "Automated rule enforcement for Kavin45$ engineering standards",
+    "main": "run-all.js",
+    "scripts": {
+        "check": "node run-all.js",
+        "check:security": "node check-security.js",
+        "check:architecture": "node check-architecture.js",
+        "check:ai": "node check-ai-governance.js",
+        "check:quality": "node check-code-quality.js",
+        "check:naming": "node check-naming.js",
+        "check:ui": "node check-ui-design.js",
+        "check:testing": "node check-testing.js"
+    },
+    "keywords": [
+        "rules",
+        "automation",
+        "code-quality",
+        "security",
+        "linting"
+    ],
+    "author": "Kavin45$",
+    "license": "MIT",
+    "engines": {
+        "node": ">=14.0.0"
+    }
+}

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Logs
+logs-and-errors/archived/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.sql
+*.sqlite
+*.db
+
+# Archives (keep structure, ignore content)
+logs-and-errors/archived/*
+!logs-and-errors/archived/.gitkeep
+
+# Keep important files
+!.cursorrules
+!.editorconfig
+!.vscode/

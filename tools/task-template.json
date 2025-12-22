@@ -1,0 +1,15 @@
+{
+    "id": "T-000",
+    "title": "Short title",
+    "description": "Detailed description and steps",
+    "assignee": "unassigned",
+    "labels": ["bug","backend"],
+    "priority": "medium",
+    "estimate_hours": 1,
+    "dependencies": [],
+    "files": [],
+    "acceptance_criteria": [],
+    "status": "todo",
+    "created_at": "2025-10-31T00:00:00Z"
+  }
+  

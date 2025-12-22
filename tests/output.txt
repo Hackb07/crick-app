@@ -1,0 +1,11 @@
+PHP Warning:  PHP Startup: Unable to load dynamic library 'zip' (tried: E:\xampp\php\ext\zip (The specified module could not be found), E:\xampp\php\ext\php_zip.dll (The specified module could not be found)) in Unknown on line 0
+
+Warning: PHP Startup: Unable to load dynamic library 'zip' (tried: E:\xampp\php\ext\zip (The specified module could not be found), E:\xampp\php\ext\php_zip.dll (The specified module could not be found)) in Unknown on line 0
+[36m[INFO] Selected Teams: Alex vs Australia[0m
+[32m[PASS] Match Created ID: 86[0m
+[32m[PASS] Match Retrieved Successfully[0m
+[32m[PASS] Squads Updated Successfully[0m
+[32m[PASS] Match Started Successfully[0m
+[32m[PASS] Scoring & Stats Calculation Verified[0m
+[32m[PASS] Innings Changed Successfully[0m
+[32m[PASS] Match Deleted Successfully[0m

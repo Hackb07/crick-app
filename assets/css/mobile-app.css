@@ -1,0 +1,450 @@
+/**
+ * Mobile App-Style Interface
+ * Modern mobile app look with responsive navigation
+ */
+
+/* Mobile App Container */
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f5f5f5;
+}
+
+/* App Header - Mobile App Style */
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+}
+
+.app-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.app-header-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Hamburger Menu Button */
+.menu-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.menu-toggle:hover,
+.menu-toggle:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Sidebar/Drawer Menu */
+.app-sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: white;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.app-sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.sidebar-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: white;
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-menu-item {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sidebar-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    color: #374151;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.sidebar-menu-link:hover {
+    background: #f9fafb;
+    color: #1e40af;
+}
+
+.sidebar-menu-link.active {
+    background: #eff6ff;
+    color: #1e40af;
+    border-right: 3px solid #1e40af;
+}
+
+.sidebar-menu-icon {
+    font-size: 1.25rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-menu-text {
+    flex: 1;
+}
+
+.sidebar-user-info {
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    margin-top: auto;
+}
+
+.sidebar-user-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-user-role {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Main Content Area */
+.app-main {
+    flex: 1;
+    margin-top: 56px;
+    padding-bottom: 70px; /* Space for bottom nav on mobile */
+    min-height: calc(100vh - 56px);
+}
+
+/* Bottom Navigation - Mobile App Style */
+.app-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+    padding: 0.5rem 0;
+    height: 65px;
+}
+
+.app-bottom-nav-items {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+}
+
+.app-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-decoration: none;
+    color: #6b7280;
+    transition: color 0.2s;
+    padding: 0.5rem;
+    min-height: 56px;
+}
+
+.app-bottom-nav-item.active {
+    color: #1e40af;
+}
+
+.app-bottom-nav-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1;
+}
+
+.app-bottom-nav-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Content Cards - Mobile App Style */
+.app-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s;
+}
+
+.app-card:active {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.app-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.app-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+    .app-sidebar {
+        transform: translateX(0);
+        top: 56px;
+        z-index: 100;
+    }
+
+    .sidebar-overlay {
+        display: none;
+    }
+
+    .menu-toggle {
+        display: none;
+    }
+
+    .app-main {
+        margin-left: 280px;
+        padding-bottom: 0;
+    }
+
+    .app-bottom-nav {
+        display: none;
+    }
+
+    .app-card {
+        margin: 1.5rem;
+    }
+}
+
+/* Mobile First - Show bottom nav on mobile */
+@media (max-width: 767px) {
+    .app-bottom-nav {
+        display: block;
+    }
+
+    .app-main {
+        margin-left: 0;
+        padding: 1rem 0.75rem;
+    }
+
+    .app-header-title {
+        font-size: 1rem;
+    }
+
+    .app-card {
+        margin: 0.75rem;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    /* Hide desktop navigation */
+    .admin-nav {
+        display: none;
+    }
+
+    /* Stack header actions on mobile */
+    .app-header-actions {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .app-header-actions .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        min-height: 36px;
+    }
+}
+
+/* Tablet Styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .app-sidebar {
+        width: 240px;
+    }
+
+    .app-main {
+        margin-left: 240px;
+    }
+}
+
+/* Touch-Friendly Improvements */
+@media (hover: none) and (pointer: coarse) {
+    .sidebar-menu-link,
+    .app-bottom-nav-item {
+        min-height: 48px;
+        padding: 1rem;
+    }
+
+    .menu-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .app-card {
+        padding: 1.25rem;
+    }
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Loading States */
+.app-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: #6b7280;
+}
+
+/* Empty States */
+.app-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.app-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.app-empty-text {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.app-empty-subtext {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
